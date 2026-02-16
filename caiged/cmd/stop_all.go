@@ -10,28 +10,10 @@ import (
 func newStopAllCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stop-all",
-		Short: "Stop all caiged containers and sessions",
+		Short: "Stop all caiged containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 			errorsList := make([]string, 0)
-			if commandExists("tmux") {
-				output, err := runCapture("tmux", []string{"list-sessions", "-F", "#{session_name}"}, ExecOptions{})
-				if err == nil {
-					for _, line := range strings.Split(output, "\n") {
-						line = strings.TrimSpace(line)
-						if line == "" {
-							continue
-						}
-						if strings.HasPrefix(line, prefix+"-") {
-							if killErr := execCommand("tmux", []string{"kill-session", "-t", line}, ExecOptions{}); killErr != nil {
-								errorsList = append(errorsList, fmt.Sprintf("kill tmux session %s: %v", line, killErr))
-							}
-						}
-					}
-				} else if !isBenignTmuxNoServerError(err) {
-					errorsList = append(errorsList, fmt.Sprintf("list tmux sessions: %v", err))
-				}
-			}
 
 			containers, err := runCapture("docker", []string{"ps", "-a", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.ID}}"}, ExecOptions{})
 			if err == nil {
@@ -55,12 +37,4 @@ func newStopAllCmd() *cobra.Command {
 		},
 	}
 	return cmd
-}
-
-func isBenignTmuxNoServerError(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "no server running")
 }

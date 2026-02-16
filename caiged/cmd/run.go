@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +13,7 @@ import (
 func newRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run <workdir> [-- <command>]",
-		Short: "Run a spin and attach via host tmux",
+		Short: "Run a spin and connect to OpenCode server",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCommand(args, runOpts, false)
@@ -45,11 +46,15 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 
 	// Display connection information
 	fmt.Printf("\n")
+	fmt.Printf("Project name: %s\n", config.Project)
 	fmt.Printf("Container: %s\n", config.ContainerName)
 	fmt.Printf("OpenCode server: http://localhost:%d\n", config.OpencodePort)
 	fmt.Printf("Password: %s\n", config.OpencodePassword)
 	fmt.Printf("\n")
-	fmt.Printf("To attach manually:\n")
+	fmt.Printf("To connect:\n")
+	fmt.Printf("  caiged connect %s\n", config.Project)
+	fmt.Printf("\n")
+	fmt.Printf("Or attach manually:\n")
 	fmt.Printf("  opencode attach http://localhost:%d --dir /workspace --password %s\n", config.OpencodePort, config.OpencodePassword)
 	fmt.Printf("\n")
 
@@ -57,7 +62,8 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 		return nil
 	}
 
-	return attachShell(config)
+	// By default, automatically connect to the OpenCode server
+	return connectToOpenCode(config)
 }
 
 func ensureImages(cfg Config) error {
@@ -201,122 +207,56 @@ func runContainerCommand(cfg Config, command []string) error {
 	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
 }
 
-type tmuxWindowSet struct {
-	shell    string
-	help     string
-	opencode string
-}
+func connectToOpenCode(cfg Config) error {
+	// Wait for the OpenCode server to be ready
+	fmt.Printf("Waiting for OpenCode server to start")
+	maxWait := 60 * time.Second
+	checkInterval := 500 * time.Millisecond
+	deadline := time.Now().Add(maxWait)
 
-func tmuxWindowCommands(cfg Config) tmuxWindowSet {
-	return tmuxWindowSet{
-		shell:    fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=shell %s %s", cfg.ContainerName, cfg.ContainerShell),
-		help:     fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=help %s /bin/zsh -lc '/usr/local/bin/,help; exec %s'", cfg.ContainerName, cfg.ContainerShell),
-		opencode: fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", cfg.OpencodePort, cfg.OpencodePassword),
-	}
-}
-
-func ensureTmuxSession(cfg Config) bool {
-	if !commandExists("tmux") {
-		return false
-	}
-	if execCommand("tmux", []string{"has-session", "-t", cfg.SessionName}, ExecOptions{}) == nil {
-		_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "automatic-rename", "off"}, ExecOptions{})
-		_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "allow-rename", "off"}, ExecOptions{})
-		ensureTmuxWindows(cfg)
-		return true
+	url := fmt.Sprintf("http://localhost:%d", cfg.OpencodePort)
+	client := &http.Client{
+		Timeout: 1 * time.Second,
 	}
 
-	commands := tmuxWindowCommands(cfg)
+	serverReady := false
+	attempts := 0
+	for time.Now().Before(deadline) {
+		attempts++
+		// Try to make an HTTP request to see if server is responding
+		resp, err := client.Get(url)
 
-	if err := execCommand("tmux", []string{"new-session", "-d", "-s", cfg.SessionName, "-n", "help", commands.help}, ExecOptions{}); err != nil {
-		return false
-	}
-	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "automatic-rename", "off"}, ExecOptions{})
-	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "allow-rename", "off"}, ExecOptions{})
-	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", commands.opencode}, ExecOptions{})
-	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", commands.shell}, ExecOptions{})
-	orderTmuxWindows(cfg)
-	return true
-}
-
-func ensureTmuxWindows(cfg Config) {
-	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "automatic-rename", "off"}, ExecOptions{})
-	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "allow-rename", "off"}, ExecOptions{})
-
-	output, err := runCapture("tmux", []string{"list-windows", "-t", cfg.SessionName, "-F", "#{window_name}"}, ExecOptions{})
-	if err != nil {
-		return
-	}
-
-	windowNames := make(map[string]bool)
-	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+		// Debug: print what we got every 10 attempts
+		if attempts%10 == 0 {
+			fmt.Printf("\n[debug attempt %d] resp=%v err=%v\n", attempts, resp != nil, err)
+			fmt.Printf("Waiting for OpenCode server to start")
 		}
-		windowNames[line] = true
-	}
 
-	commands := tmuxWindowCommands(cfg)
-
-	if !windowNames["help"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "help", commands.help}, ExecOptions{})
-	}
-	if !windowNames["opencode"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", commands.opencode}, ExecOptions{})
-	}
-	if !windowNames["shell"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", commands.shell}, ExecOptions{})
-	}
-
-	orderTmuxWindows(cfg)
-}
-
-func orderTmuxWindows(cfg Config) {
-	baseIndex := tmuxBaseIndex()
-	_ = execCommand("tmux", []string{"move-window", "-s", cfg.SessionName + ":help", "-t", fmt.Sprintf("%s:%d", cfg.SessionName, baseIndex)}, ExecOptions{})
-	_ = execCommand("tmux", []string{"move-window", "-s", cfg.SessionName + ":opencode", "-t", fmt.Sprintf("%s:%d", cfg.SessionName, baseIndex+1)}, ExecOptions{})
-	_ = execCommand("tmux", []string{"move-window", "-s", cfg.SessionName + ":shell", "-t", fmt.Sprintf("%s:%d", cfg.SessionName, baseIndex+2)}, ExecOptions{})
-	renameWindowIndices(cfg, baseIndex)
-	_ = execCommand("tmux", []string{"select-window", "-t", fmt.Sprintf("%s:%d", cfg.SessionName, baseIndex)}, ExecOptions{})
-}
-
-func renameWindowIndices(cfg Config, baseIndex int) {
-	renameWindow(cfg, baseIndex, "help")
-	renameWindow(cfg, baseIndex+1, "opencode")
-	renameWindow(cfg, baseIndex+2, "shell")
-}
-
-func renameWindow(cfg Config, index int, name string) {
-	target := fmt.Sprintf("%s:%d", cfg.SessionName, index)
-	_ = execCommand("tmux", []string{"rename-window", "-t", target, name}, ExecOptions{})
-	_ = execCommand("tmux", []string{"set-window-option", "-t", target, "automatic-rename", "off"}, ExecOptions{})
-	_ = execCommand("tmux", []string{"set-window-option", "-t", target, "allow-rename", "off"}, ExecOptions{})
-}
-
-func tmuxBaseIndex() int {
-	output, err := runCapture("tmux", []string{"show-options", "-gqv", "base-index"}, ExecOptions{})
-	if err != nil {
-		return 0
-	}
-	value := strings.TrimSpace(output)
-	if value == "" {
-		return 0
-	}
-	index, err := strconv.Atoi(value)
-	if err != nil {
-		return 0
-	}
-	return index
-}
-
-func attachShell(cfg Config) error {
-	if ensureTmuxSession(cfg) {
-		if os.Getenv("TMUX") != "" {
-			return execCommand("tmux", []string{"switch-client", "-t", cfg.SessionName}, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+		// If we got a response object, the server is responding (even if it's an error like 401)
+		if resp != nil {
+			resp.Body.Close()
+			serverReady = true
+			fmt.Printf(" ready!\n")
+			break
 		}
-		return execCommand("tmux", []string{"attach", "-t", cfg.SessionName}, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+
+		// If there's no error and no response, something is very wrong, but let's treat it as ready
+		if err == nil {
+			serverReady = true
+			fmt.Printf(" ready!\n")
+			break
+		}
+
+		fmt.Printf(".")
+		time.Sleep(checkInterval)
 	}
 
-	return execCommand("docker", []string{"exec", "-it", cfg.ContainerName, cfg.ContainerShell}, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+	if !serverReady {
+		fmt.Printf("\n")
+		return fmt.Errorf("OpenCode server failed to start within %v (attempted %d times)", maxWait, attempts)
+	}
+
+	// Now connect with the OpenCode client
+	connectArgs := []string{"attach", url, "--dir", "/workspace", "--password", cfg.OpencodePassword}
+	return execCommand("opencode", connectArgs, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
 }

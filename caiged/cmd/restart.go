@@ -21,8 +21,9 @@ func restartCommand(args []string, opts RunOptions) error {
 		return err
 	}
 
-	resetSession(config)
+	// Stop the container (which will remove it automatically due to --rm flag)
 	stopContainer(config)
 
+	// Restart by running the command again
 	return runCommand(args, opts, false)
 }

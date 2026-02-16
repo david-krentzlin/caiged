@@ -27,7 +27,6 @@ type Config struct {
 	BaseImage         string
 	SpinImage         string
 	ContainerName     string
-	SessionName       string
 	ContainerShell    string
 	EnableNetwork     bool
 	DisableDockerSock bool
@@ -79,10 +78,13 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 	if project == "" {
 		project = deriveProjectName(workdirAbs)
 	}
-	projectSlug := slugifyProjectName(project)
+
+	// Include spin in the project name to clearly distinguish between spins
+	projectWithSpin := fmt.Sprintf("%s-%s", spin, project)
+	projectSlug := slugifyProjectName(projectWithSpin)
 
 	imagePrefix := envOrDefault("IMAGE_PREFIX", "caiged")
-	containerName := fmt.Sprintf("%s-%s-%s", imagePrefix, spin, projectSlug)
+	containerName := fmt.Sprintf("%s-%s", imagePrefix, projectSlug)
 
 	containerShell := envOrDefault("CONTAINER_SHELL", "/bin/zsh")
 
@@ -126,9 +128,18 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		secretEnvFile = candidate
 	}
 
-	opencodePort, err := findFreePort(4096)
-	if err != nil {
-		return Config{}, err
+	// Check if container is already running and get its port
+	opencodePort := 0
+	existingPort, err := getContainerPort(containerName)
+	if err == nil && existingPort > 0 {
+		// Container exists and has a port, use it
+		opencodePort = existingPort
+	} else {
+		// Container doesn't exist or no port found, find a free port
+		opencodePort, err = findFreePort(4096)
+		if err != nil {
+			return Config{}, err
+		}
 	}
 
 	opencodePassword, err := generateOpencodePassword(containerName)
@@ -141,13 +152,12 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		RepoRoot:          repoRoot,
 		Spin:              spin,
 		SpinDir:           spinDir,
-		Project:           project,
+		Project:           projectWithSpin,
 		ProjectSlug:       projectSlug,
 		ImagePrefix:       imagePrefix,
 		BaseImage:         fmt.Sprintf("%s:base", imagePrefix),
 		SpinImage:         fmt.Sprintf("%s:%s", imagePrefix, spin),
 		ContainerName:     containerName,
-		SessionName:       containerName,
 		ContainerShell:    containerShell,
 		EnableNetwork:     !opts.DisableNetwork,
 		DisableDockerSock: opts.DisableDockerSock,
@@ -376,6 +386,16 @@ func runCapture(name string, args []string, opts ExecOptions) (string, error) {
 	return stdout.String(), nil
 }
 
+func getContainerPort(containerName string) (int, error) {
+	output, err := runCapture("docker", []string{"inspect", "-f", "{{(index (index .NetworkSettings.Ports \"4096/tcp\") 0).HostPort}}", containerName}, ExecOptions{})
+	if err != nil {
+		return 0, err
+	}
+	var port int
+	_, err = fmt.Sscanf(strings.TrimSpace(output), "%d", &port)
+	return port, err
+}
+
 func execCommand(name string, args []string, opts ExecOptions) error {
 	cmd := exec.Command(name, args...)
 	if opts.Dir != "" {
@@ -402,16 +422,10 @@ func stopContainer(cfg Config) {
 	_ = execCommand("docker", []string{"rm", "-f", cfg.ContainerName}, ExecOptions{})
 }
 
-func resetSession(cfg Config) {
-	if !commandExists("tmux") {
-		return
-	}
-	_ = execCommand("tmux", []string{"kill-session", "-t", cfg.SessionName}, ExecOptions{})
-}
-
 func findFreePort(startPort int) (int, error) {
 	for port := startPort; port < startPort+1000; port++ {
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		// Check if port is available on all interfaces (0.0.0.0) to match Docker's behavior
+		addr := fmt.Sprintf("0.0.0.0:%d", port)
 		listener, err := net.Listen("tcp", addr)
 		if err == nil {
 			_ = listener.Close()

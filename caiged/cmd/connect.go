@@ -19,7 +19,7 @@ func newConnectCmd() *cobra.Command {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 
 			// Try to find a container matching the project slug
-			output, err := runCapture("docker", []string{"ps", "--filter", fmt.Sprintf("name=^/%s-.*-%s$", prefix, projectSlug), "--format", "{{.Names}}"}, ExecOptions{})
+			output, err := runCapture("docker", []string{"ps", "--filter", fmt.Sprintf("name=^/%s-%s$", prefix, projectSlug), "--format", "{{.Names}}"}, ExecOptions{})
 			if err != nil {
 				return fmt.Errorf("search containers: %w", err)
 			}
