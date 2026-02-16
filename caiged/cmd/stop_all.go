@@ -10,7 +10,7 @@ import (
 func newStopAllCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stop-all",
-		Short: "Stop all caiged containers and tmux sessions",
+		Short: "Stop all caiged containers and sessions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 			errorsList := make([]string, 0)

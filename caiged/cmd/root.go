@@ -9,7 +9,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "caiged [command] [flags]",
-	Short: "Run isolated agent spins in Docker",
+	Short: "Run isolated OpenCode agent spins in Docker",
 	RunE:  func(cmd *cobra.Command, args []string) error { return cmd.Help() },
 }
 
@@ -26,4 +26,6 @@ func init() {
 	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newBuildCmd())
 	rootCmd.AddCommand(newSessionCmd())
+	rootCmd.AddCommand(newPortCmd())
+	rootCmd.AddCommand(newConnectCmd())
 }

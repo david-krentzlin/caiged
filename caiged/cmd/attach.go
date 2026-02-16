@@ -9,7 +9,7 @@ import (
 func newAttachCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "attach <session-or-workdir>",
-		Short: "Attach to a host tmux session or container shell",
+		Short: "Attach to a container shell or start a new session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return attachCommand(args, runOpts)

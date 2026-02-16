@@ -10,7 +10,6 @@ ENV AGENT_WORKDIR=/workspace
 ENV MISE_DATA_DIR=/opt/mise
 ENV PATH="/opt/mise/shims:/root/.bun/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ENV SHELL=/bin/zsh
-ENV STARSHIP_CONFIG=/etc/starship.toml
 ENV OPENCODE_CONFIG_DIR=/root/.config/opencode
 ENV OPENCODE_VERSION=${OPENCODE_VERSION}
 ENV TERM=xterm-256color
@@ -55,7 +54,6 @@ RUN case "$ARCH" in \
   && chmod +x /usr/local/bin/mise
 
 COPY config/target_mise.toml /etc/mise.toml
-COPY config/starship.toml /etc/starship.toml
 COPY config/tmux.conf /etc/tmux.conf
 COPY config/zshrc /etc/zsh/zshrc
 COPY config/zprofile /etc/zsh/zprofile
@@ -86,8 +84,22 @@ ENV AGENT_SPIN=${SPIN}
 ENV AGENT_SPIN_DIR=/opt/agent/spin
 
 COPY spins/${SPIN}/ /opt/agent/spin/
-RUN mkdir -p "$OPENCODE_CONFIG_DIR" \
-  && if [ -f /opt/agent/spin/AGENTS.md ]; then cp /opt/agent/spin/AGENTS.md "$OPENCODE_CONFIG_DIR/AGENTS.md"; fi \
-  && if [ -f /opt/agent/spin/AGENT.md ] && [ ! -f "$OPENCODE_CONFIG_DIR/AGENTS.md" ]; then cp /opt/agent/spin/AGENT.md "$OPENCODE_CONFIG_DIR/AGENTS.md"; fi \
+RUN mkdir -p "$OPENCODE_CONFIG_DIR/agents" \
+  && SPIN_NAME="${SPIN}" \
+  && if [ -f /opt/agent/spin/AGENTS.md ]; then cp /opt/agent/spin/AGENTS.md "$OPENCODE_CONFIG_DIR/agents/${SPIN_NAME}.md"; fi \
+  && if [ -f /opt/agent/spin/AGENT.md ] && [ ! -f "$OPENCODE_CONFIG_DIR/agents/${SPIN_NAME}.md" ]; then cp /opt/agent/spin/AGENT.md "$OPENCODE_CONFIG_DIR/agents/${SPIN_NAME}.md"; fi \
   && if [ -d /opt/agent/spin/skills ]; then cp -R /opt/agent/spin/skills "$OPENCODE_CONFIG_DIR/"; fi \
-  && if [ -d /opt/agent/spin/mcp ]; then cp -R /opt/agent/spin/mcp "$OPENCODE_CONFIG_DIR/"; fi
+  && if [ -d /opt/agent/spin/mcp ]; then cp -R /opt/agent/spin/mcp "$OPENCODE_CONFIG_DIR/"; fi \
+  && cat > "$OPENCODE_CONFIG_DIR/opencode.json" <<EOF
+{
+  "agent": {
+    "${SPIN_NAME}": {
+      "description": "Spin-specific agent: ${SPIN_NAME}",
+      "mode": "primary",
+      "prompt": "{file:$OPENCODE_CONFIG_DIR/agents/${SPIN_NAME}.md}"
+    }
+  },
+  "default_agent": "${SPIN_NAME}"
+}
+EOF
+

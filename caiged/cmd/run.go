@@ -43,6 +43,16 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 		return err
 	}
 
+	// Display connection information
+	fmt.Printf("\n")
+	fmt.Printf("Container: %s\n", config.ContainerName)
+	fmt.Printf("OpenCode server: http://localhost:%d\n", config.OpencodePort)
+	fmt.Printf("Password: %s\n", config.OpencodePassword)
+	fmt.Printf("\n")
+	fmt.Printf("To attach manually:\n")
+	fmt.Printf("  opencode attach http://localhost:%d --dir /workspace --password %s\n", config.OpencodePort, config.OpencodePassword)
+	fmt.Printf("\n")
+
 	if opts.DetachOnly && !isAttach {
 		return nil
 	}
@@ -120,6 +130,7 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	args := []string{"run"}
 	if mode == dockerRunDetached {
 		args = append(args, "-d", "--rm", "--name", cfg.ContainerName)
+		args = append(args, "--label", fmt.Sprintf("opencode.port=%d", cfg.OpencodePort))
 	} else {
 		args = append(args, "--rm", "-it")
 	}
@@ -128,7 +139,8 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	if !cfg.EnableNetwork {
 		args = append(args, "--network=none")
 	} else {
-		args = append(args, "--network=host")
+		args = append(args, "--network=bridge")
+		args = append(args, "-p", fmt.Sprintf("%d:4096", cfg.OpencodePort))
 	}
 	if !cfg.DisableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
@@ -172,7 +184,11 @@ func startContainerDetached(cfg Config) error {
 	}
 
 	args := dockerRunArgs(cfg, dockerRunDetached)
-	args = append(args, "-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin), "-e", "AGENT_DAEMON=1", cfg.SpinImage)
+	args = append(args,
+		"-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin),
+		"-e", "AGENT_DAEMON=1",
+		"-e", fmt.Sprintf("OPENCODE_SERVER_PASSWORD=%s", cfg.OpencodePassword),
+		cfg.SpinImage)
 
 	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr}))
 }
@@ -195,7 +211,7 @@ func tmuxWindowCommands(cfg Config) tmuxWindowSet {
 	return tmuxWindowSet{
 		shell:    fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=shell %s %s", cfg.ContainerName, cfg.ContainerShell),
 		help:     fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=help %s /bin/zsh -lc '/usr/local/bin/,help; exec %s'", cfg.ContainerName, cfg.ContainerShell),
-		opencode: fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=opencode %s /bin/zsh -lc '/usr/local/bin/start-opencode; exec %s'", cfg.ContainerName, cfg.ContainerShell),
+		opencode: fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", cfg.OpencodePort, cfg.OpencodePassword),
 	}
 }
 

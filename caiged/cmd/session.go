@@ -5,7 +5,7 @@ import "github.com/spf13/cobra"
 func newSessionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "session",
-		Short: "Manage host tmux sessions",
+		Short: "Manage OpenCode server sessions and containers",
 	}
 	cmd.AddCommand(newAttachCmd())
 	cmd.AddCommand(newListCmd())

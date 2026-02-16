@@ -1,10 +1,5 @@
 export PATH="/opt/mise/shims:/root/.bun/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-export STARSHIP_CONFIG=/etc/starship.toml
 
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
-fi
-
-if command -v starship >/dev/null 2>&1; then
-  eval "$(starship init zsh)"
 fi

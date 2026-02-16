@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,6 +43,8 @@ type Config struct {
 	MiseVersion       string
 	GHVersion         string
 	OpencodeVersion   string
+	OpencodePort      int
+	OpencodePassword  string
 }
 
 type ExecOptions struct {
@@ -120,6 +126,16 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		secretEnvFile = candidate
 	}
 
+	opencodePort, err := findFreePort(4096)
+	if err != nil {
+		return Config{}, err
+	}
+
+	opencodePassword, err := generateOpencodePassword(containerName)
+	if err != nil {
+		return Config{}, err
+	}
+
 	config := Config{
 		WorkdirAbs:        workdirAbs,
 		RepoRoot:          repoRoot,
@@ -147,6 +163,8 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		MiseVersion:       envOrDefault("MISE_VERSION", "2026.2.13"),
 		GHVersion:         envOrDefault("GH_VERSION", "2.86.0"),
 		OpencodeVersion:   envOrDefault("OPENCODE_VERSION", "latest"),
+		OpencodePort:      opencodePort,
+		OpencodePassword:  opencodePassword,
 	}
 
 	return config, nil
@@ -389,4 +407,63 @@ func resetSession(cfg Config) {
 		return
 	}
 	_ = execCommand("tmux", []string{"kill-session", "-t", cfg.SessionName}, ExecOptions{})
+}
+
+func findFreePort(startPort int) (int, error) {
+	for port := startPort; port < startPort+1000; port++ {
+		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		listener, err := net.Listen("tcp", addr)
+		if err == nil {
+			_ = listener.Close()
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("no free port found in range %d-%d", startPort, startPort+999)
+}
+
+func getOrCreateSalt() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home dir: %w", err)
+	}
+
+	configDir := filepath.Join(homeDir, ".config", "caiged")
+	saltFile := filepath.Join(configDir, "salt")
+
+	// Try to read existing salt
+	if data, err := os.ReadFile(saltFile); err == nil {
+		return strings.TrimSpace(string(data)), nil
+	}
+
+	// Generate new salt
+	saltBytes := make([]byte, 32)
+	if _, err := rand.Read(saltBytes); err != nil {
+		return "", fmt.Errorf("generate salt: %w", err)
+	}
+	salt := hex.EncodeToString(saltBytes)
+
+	// Create config directory if it doesn't exist
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return "", fmt.Errorf("create config dir: %w", err)
+	}
+
+	// Write salt to file
+	if err := os.WriteFile(saltFile, []byte(salt+"\n"), 0600); err != nil {
+		return "", fmt.Errorf("write salt: %w", err)
+	}
+
+	return salt, nil
+}
+
+func generateOpencodePassword(containerName string) (string, error) {
+	salt, err := getOrCreateSalt()
+	if err != nil {
+		return "", err
+	}
+
+	// Generate password from SHA256(container_name + salt)
+	hash := sha256.Sum256([]byte(containerName + salt))
+	password := hex.EncodeToString(hash[:])
+
+	return password, nil
 }
