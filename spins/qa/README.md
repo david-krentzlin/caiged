@@ -10,6 +10,10 @@ Quick onboarding:
 - Run `caiged-onboard` to set up gh/op/opencode auth
 - Set `OPENCODE_AUTH_CMD` if opencode needs a specific auth command
 
+In-container helpers:
+- `,help` for environment info
+- `,auth-tools` to authenticate gh and 1password
+
 Notes:
 - Network is disabled by default unless `--enable-network` is used
 - Docker socket is enabled by default unless `--disable-docker-sock` is used

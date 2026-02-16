@@ -9,10 +9,14 @@ Options:
   --task <name>          Spin name (default: qa)
   --project <name>       Project name for container naming
   --enable-network       Enable network access (default: disabled)
-  --enable-docker-sock   Mount /var/run/docker.sock (default: enabled)
   --disable-docker-sock  Do not mount /var/run/docker.sock
+  --mount-gh             Mount host gh config (default: enabled if present)
+  --mount-gh-rw          Mount host gh config read-write
+  --no-mount-gh          Do not mount host gh config
   --force-build          Rebuild base and spin images
-  --tmux                 Start tmux in the container
+  --detach               Run container in background and do not attach (default attaches)
+  --attach               Attach to existing container shell
+  --list                 List active caiged containers and tmux sessions
   -h, --help             Show this help
 EOF
 }
@@ -22,7 +26,12 @@ PROJECT_NAME=""
 ENABLE_NETWORK=0
 ENABLE_DOCKER_SOCK=1
 FORCE_BUILD=0
-ENABLE_TMUX=0
+DETACH=1
+ATTACH=0
+ATTACH_ON_START=1
+MOUNT_GH=1
+MOUNT_GH_RW=0
+LIST=0
 WORKDIR=""
 COMMAND_ARGS=()
 
@@ -40,20 +49,38 @@ while [ "$#" -gt 0 ]; do
       ENABLE_NETWORK=1
       shift
       ;;
-    --enable-docker-sock)
-      ENABLE_DOCKER_SOCK=1
-      shift
-      ;;
     --disable-docker-sock)
       ENABLE_DOCKER_SOCK=0
+      shift
+      ;;
+    --mount-gh)
+      MOUNT_GH=1
+      shift
+      ;;
+    --mount-gh-rw)
+      MOUNT_GH=1
+      MOUNT_GH_RW=1
+      shift
+      ;;
+    --no-mount-gh)
+      MOUNT_GH=0
       shift
       ;;
     --force-build)
       FORCE_BUILD=1
       shift
       ;;
-    --tmux)
-      ENABLE_TMUX=1
+    --detach)
+      DETACH=1
+      ATTACH_ON_START=0
+      shift
+      ;;
+    --attach)
+      ATTACH=1
+      shift
+      ;;
+    --list)
+      LIST=1
       shift
       ;;
     -h|--help)
@@ -82,6 +109,24 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+IMAGE_PREFIX="${IMAGE_PREFIX:-caiged}"
+
+if [ "$LIST" -eq 1 ]; then
+  echo "Running containers:"
+  docker ps --filter "name=^/${IMAGE_PREFIX}-" --format "{{.Names}}\t{{.Status}}" || true
+  echo
+  echo "All containers:"
+  docker ps -a --filter "name=^/${IMAGE_PREFIX}-" --format "{{.Names}}\t{{.Status}}" || true
+  echo
+  if command -v tmux >/dev/null 2>&1; then
+    echo "Tmux sessions:"
+    tmux list-sessions -F "#{session_name}" 2>/dev/null | grep "^${IMAGE_PREFIX}-" || true
+  else
+    echo "Tmux sessions: tmux not available"
+  fi
+  exit 0
+fi
+
 if [ -z "$WORKDIR" ]; then
   echo "Missing working directory." >&2
   usage
@@ -104,7 +149,6 @@ if [ ! -d "$SPIN_DIR" ]; then
   exit 1
 fi
 
-IMAGE_PREFIX="${IMAGE_PREFIX:-caiged}"
 BASE_IMAGE="${IMAGE_PREFIX}:base"
 SPIN_IMAGE="${IMAGE_PREFIX}:${SPIN}"
 
@@ -156,6 +200,22 @@ if [ -z "$PROJECT_CLEAN" ]; then
 fi
 
 CONTAINER_NAME="${IMAGE_PREFIX}-${SPIN}-${PROJECT_CLEAN}"
+SESSION_NAME="${CONTAINER_NAME}"
+CONTAINER_SHELL="${CONTAINER_SHELL:-/bin/zsh}"
+
+if [ "$ATTACH" -eq 1 ]; then
+  ATTACH_ON_START=1
+fi
+
+GH_HOST_CONFIG="${HOME}/.config/gh"
+GH_MOUNT=()
+if [ "$MOUNT_GH" -eq 1 ] && [ -d "$GH_HOST_CONFIG" ]; then
+  if [ "$MOUNT_GH_RW" -eq 1 ]; then
+    GH_MOUNT=(-v "$GH_HOST_CONFIG:/root/.config/gh")
+  else
+    GH_MOUNT=(-v "$GH_HOST_CONFIG:/root/.config/gh:ro")
+  fi
+fi
 
 ARCH="${ARCH:-arm64}"
 MISE_VERSION="${MISE_VERSION:-2026.2.13}"
@@ -198,24 +258,79 @@ else
   fi
 fi
 
-RUN_ARGS=(--rm -it --name "$CONTAINER_NAME" -v "$WORKDIR_ABS:/workspace")
+container_exists() {
+  docker inspect "$CONTAINER_NAME" >/dev/null 2>&1
+}
 
-if [ "$ENABLE_NETWORK" -eq 0 ]; then
-  RUN_ARGS+=(--network=none)
-fi
+container_running() {
+  docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null | grep -q true
+}
 
-if [ "$ENABLE_DOCKER_SOCK" -eq 1 ]; then
-  RUN_ARGS+=(-v /var/run/docker.sock:/var/run/docker.sock)
-fi
+start_container_detached() {
+  if container_running; then
+    return
+  fi
+  if container_exists; then
+    docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  fi
 
-if [ "$ENABLE_TMUX" -eq 1 ]; then
-  RUN_ARGS+=(-e AGENT_TMUX=1)
-fi
+  RUN_ARGS=(-d --rm --name "$CONTAINER_NAME" -v "$WORKDIR_ABS:/workspace")
+  if [ "$ENABLE_NETWORK" -eq 0 ]; then
+    RUN_ARGS+=(--network=none)
+  fi
+  if [ "$ENABLE_DOCKER_SOCK" -eq 1 ]; then
+    RUN_ARGS+=(-v /var/run/docker.sock:/var/run/docker.sock)
+  fi
+  if [ "${#GH_MOUNT[@]}" -gt 0 ]; then
+    RUN_ARGS+=("${GH_MOUNT[@]}")
+  fi
+  RUN_ARGS+=(-e AGENT_SPIN="$SPIN" -e AGENT_DAEMON=1)
+  docker run "${RUN_ARGS[@]}" "$SPIN_IMAGE"
+}
 
-RUN_ARGS+=(-e AGENT_SPIN="$SPIN")
+ensure_tmux_session() {
+  if ! command -v tmux >/dev/null 2>&1; then
+    return 1
+  fi
+
+  if tmux has-session -t "$SESSION_NAME" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  tmux new-session -d -s "$SESSION_NAME" -n shell "docker exec -it $CONTAINER_NAME $CONTAINER_SHELL"
+}
+
+attach_shell() {
+  if ensure_tmux_session; then
+    if [ -n "${TMUX:-}" ]; then
+      exec tmux switch-client -t "$SESSION_NAME"
+    fi
+    exec tmux attach -t "$SESSION_NAME"
+  fi
+
+  exec docker exec -it "$CONTAINER_NAME" "$CONTAINER_SHELL"
+}
 
 if [ "${#COMMAND_ARGS[@]}" -gt 0 ]; then
+  RUN_ARGS=(--rm -it --name "$CONTAINER_NAME" -v "$WORKDIR_ABS:/workspace")
+  if [ "$ENABLE_NETWORK" -eq 0 ]; then
+    RUN_ARGS+=(--network=none)
+  fi
+  if [ "$ENABLE_DOCKER_SOCK" -eq 1 ]; then
+    RUN_ARGS+=(-v /var/run/docker.sock:/var/run/docker.sock)
+  fi
+  if [ "${#GH_MOUNT[@]}" -gt 0 ]; then
+    RUN_ARGS+=("${GH_MOUNT[@]}")
+  fi
+  RUN_ARGS+=(-e AGENT_SPIN="$SPIN")
   docker run "${RUN_ARGS[@]}" "$SPIN_IMAGE" "${COMMAND_ARGS[@]}"
-else
-  docker run "${RUN_ARGS[@]}" "$SPIN_IMAGE"
+  exit 0
 fi
+
+start_container_detached
+
+if [ "$DETACH" -eq 1 ] && [ "$ATTACH_ON_START" -eq 0 ]; then
+  exit 0
+fi
+
+attach_shell

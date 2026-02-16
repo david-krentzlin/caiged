@@ -2,10 +2,10 @@
 
 Run isolated, tool-rich agent containers with explicit host mounts and purpose-built spins.
 
-Most common use-case (QA spin on a repo):
+Most common use-case (QA spin on the current repo):
 
 ```bash
-./scripts/caiged /path/to/workdir --task qa
+./scripts/caiged "$(pwd)" --task qa
 ```
 
 Container naming:
@@ -36,9 +36,16 @@ QA spin with network disabled (default):
 ./scripts/caiged /path/to/workdir --task qa
 ```
 
-On start, the container opens a tmux session with:
-- README tab showing the spin overview
-- opencode tab attempting to run `opencode`
+By default, `caiged` starts the container detached and then opens a host tmux session (if available) with a shell attached to the container. Use `--detach` to skip attaching.
+
+Host tmux sessions:
+- Session name: `caiged-<spin>-<project>`
+- If already inside tmux, it switches to the session
+
+Inside the container:
+- `,help` for environment info
+- `,auth-tools` to authenticate gh and 1password
+- gh config is mounted from the host when available (read-only by default)
 
 Enable network:
 
@@ -52,17 +59,36 @@ Docker socket is enabled by default. To disable it:
 ./scripts/caiged /path/to/workdir --task qa --disable-docker-sock
 ```
 
+Run detached (container keeps running):
+
+```bash
+./scripts/caiged "$(pwd)" --task qa --detach
+```
+
+Attach to container shell (host tmux session if available):
+
+```bash
+./scripts/caiged "$(pwd)" --task qa --attach
+```
+
+List active caiged containers and tmux sessions:
+
+```bash
+./scripts/caiged --list
+```
+
+Mount host gh config read-write:
+
+```bash
+./scripts/caiged "$(pwd)" --task qa --mount-gh-rw
+```
+
 Force rebuild:
 
 ```bash
 OPENCODE_VERSION=latest ./scripts/caiged /path/to/workdir --task qa --force-build
 ```
 
-Optional tmux:
-
-```bash
-./scripts/caiged /path/to/workdir --task qa --tmux
-```
 
 ## Acceptance test
 

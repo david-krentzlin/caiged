@@ -2,8 +2,7 @@
 set -euo pipefail
 
 WORKDIR="${AGENT_WORKDIR:-/workspace}"
-USE_TMUX="${AGENT_TMUX:-1}"
-SESSION_NAME="${AGENT_TMUX_SESSION:-agent}"
+DAEMON_MODE="${AGENT_DAEMON:-0}"
 OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-/root/.config/opencode}"
 
 mkdir -p "$WORKDIR"
@@ -28,18 +27,8 @@ if [ "$#" -gt 0 ]; then
 	exec "$@"
 fi
 
-if [ "$USE_TMUX" = "1" ] && command -v tmux >/dev/null 2>&1; then
-	if tmux has-session -t "$SESSION_NAME" >/dev/null 2>&1; then
-		exec tmux attach-session -t "$SESSION_NAME"
-	fi
-
-	tmux new-session -d -s "$SESSION_NAME" -n README
-	README_CMD='clear; if [ -f /opt/agent/spin/README.md ]; then cat /opt/agent/spin/README.md; else echo "No README.md for this spin."; fi'
-	tmux send-keys -t "$SESSION_NAME:README" "$README_CMD" C-m
-
-	tmux new-window -t "$SESSION_NAME" -n opencode "/usr/local/bin/start-opencode"
-	tmux select-window -t "$SESSION_NAME:README"
-	exec tmux attach-session -t "$SESSION_NAME"
+if [ "$DAEMON_MODE" = "1" ]; then
+	exec sleep infinity
 fi
 
 exec "${SHELL:-/bin/bash}"

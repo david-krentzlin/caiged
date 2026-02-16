@@ -13,6 +13,9 @@ ENV PATH="/opt/mise/shims:/root/.bun/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin
 ENV SHELL=/bin/zsh
 ENV STARSHIP_CONFIG=/etc/starship.toml
 ENV OPENCODE_CONFIG_DIR=/root/.config/opencode
+ENV OPENCODE_VERSION=${OPENCODE_VERSION}
+ENV TERM=xterm-256color
+ENV COLORTERM=truecolor
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -22,6 +25,7 @@ RUN apt-get update \
     git \
     gnupg \
     jq \
+    ncurses-term \
     openssh-client \
     tmux \
     docker.io \
@@ -62,6 +66,7 @@ RUN case "$ARCH" in \
 
 COPY config/target_mise.toml /etc/mise.toml
 COPY config/starship.toml /etc/starship.toml
+COPY config/tmux.conf /etc/tmux.conf
 COPY config/zshrc /etc/zsh/zshrc
 COPY config/zprofile /etc/zsh/zprofile
 
@@ -76,10 +81,12 @@ WORKDIR /workspace
 
 COPY entrypoint.sh /usr/local/bin/agent-entrypoint
 COPY scripts/start-opencode.sh /usr/local/bin/start-opencode
-COPY scripts/onboard.sh /usr/local/bin/caiged-onboard
+COPY scripts/comma-help.sh /usr/local/bin/,help
+COPY scripts/comma-auth-tools.sh /usr/local/bin/,auth-tools
 RUN chmod +x /usr/local/bin/agent-entrypoint \
   /usr/local/bin/start-opencode \
-  /usr/local/bin/caiged-onboard
+  /usr/local/bin/,help \
+  /usr/local/bin/,auth-tools
 
 ENTRYPOINT ["/usr/local/bin/agent-entrypoint"]
 

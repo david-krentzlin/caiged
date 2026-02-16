@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SPIN="${AGENT_SPIN:-unknown}"
+WORKDIR="${AGENT_WORKDIR:-/workspace}"
+CONFIG_DIR="${OPENCODE_CONFIG_DIR:-/root/.config/opencode}"
+
+DOCKER_SOCK_STATUS="disabled"
+if [ -S /var/run/docker.sock ]; then
+	DOCKER_SOCK_STATUS="enabled"
+fi
+
+cat <<EOF
+Caiged environment
+
+Spin: ${SPIN}
+Workdir: ${WORKDIR}
+Opencode config: ${CONFIG_DIR}
+Docker socket: ${DOCKER_SOCK_STATUS}
+
+Commands:
+  ,help         Show this message
+
+Notes:
+  - AGENTS.md and skills are copied into ${CONFIG_DIR}
+  - Network is disabled by default unless enabled at launch
+EOF

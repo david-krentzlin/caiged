@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v opencode >/dev/null 2>&1; then
-	exec opencode
+OPENCODE_VERSION="${OPENCODE_VERSION:-latest}"
+
+if command -v bunx >/dev/null 2>&1; then
+	exec bunx "opencode-ai@${OPENCODE_VERSION}"
 fi
 
-echo "opencode is not installed. Add it to config/target_mise.toml or install it manually."
+echo "bunx is not available. Ensure bun is installed via config/target_mise.toml."
 exec "${SHELL:-/bin/zsh}"
