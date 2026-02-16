@@ -1,0 +1,100 @@
+.TH CAIGED-SESSION 1 "February 2026" "caiged" "User Commands"
+.SH NAME
+caiged-session \- Manage OpenCode server sessions and containers
+.SH SYNOPSIS
+.B caiged session
+\fIsubcommand\fR [\fIargs\fR]
+.SH DESCRIPTION
+.B caiged session
+provides commands for managing running caiged containers and their associated OpenCode server sessions.
+.SH SUBCOMMANDS
+.TP
+.B list
+List all active caiged containers with their status and connection information. Shows both running and stopped containers with styled output including project names, container IDs, status, and connection commands.
+.TP
+.B attach \fIsession-or-workdir\fR
+Attach to a container shell for debugging. Can take either a container name/ID or a working directory path. When given a directory, it behaves like
+.B caiged
+but attaches to the container shell instead of the OpenCode TUI.
+.TP
+.B restart \fIworkdir\fR
+Stop the container for a project and restart it. This is useful when you need to apply configuration changes or recover from issues.
+.TP
+.B stop-all
+Stop all caiged containers. This forcefully removes all containers managed by caiged.
+.SH EXAMPLES
+.TP
+List all running containers:
+.B caiged session list
+.TP
+Attach to a container shell by name:
+.B caiged session attach caiged-qa-my-app
+.TP
+Attach to a container shell by directory:
+.B caiged session attach .
+.TP
+Restart a container:
+.B caiged session restart .
+.TP
+Stop all containers:
+.B caiged session stop-all
+.SH SESSION LIST OUTPUT
+The
+.B list
+subcommand displays containers in a formatted table with:
+.IP \(bu 2
+Project name (extracted from container name)
+.IP \(bu 2
+Full container name
+.IP \(bu 2
+Status (e.g., "Up 2 hours")
+.IP \(bu 2
+Connect command (copy-paste ready)
+.IP \(bu 2
+Shell command (for direct container access)
+.PP
+The output uses color coding:
+.IP \(bu 2
+Green for running containers
+.IP \(bu 2
+Yellow for stopped containers
+.IP \(bu 2
+Cyan for project names
+.SH ATTACH BEHAVIOR
+The
+.B attach
+subcommand connects to the container's shell (default: /bin/zsh) for debugging and maintenance tasks. This is different from the default
+.B caiged
+behavior which connects to the OpenCode TUI client.
+.PP
+When given a directory path, it will:
+.IP 1. 3
+Determine the project name from the directory
+.IP 2. 3
+Find the matching container
+.IP 3. 3
+Execute an interactive shell inside the container
+.SH RESTART BEHAVIOR
+The
+.B restart
+subcommand will:
+.IP 1. 3
+Stop and remove the existing container
+.IP 2. 3
+Start a new container with the same configuration
+.IP 3. 3
+Attach to the new container's OpenCode server
+.PP
+All flags from the original container creation (network settings, mounts, etc.) should be provided again.
+.SH STOP-ALL BEHAVIOR
+The
+.B stop-all
+subcommand forcefully removes all caiged containers using
+.BR "docker rm -f" .
+This will terminate all running OpenCode sessions. Use with caution as unsaved work may be lost.
+.SH SEE ALSO
+.BR caiged (1),
+.BR caiged-connect (1),
+.BR docker (1)
+.SH AUTHOR
+Written by the caiged development team.

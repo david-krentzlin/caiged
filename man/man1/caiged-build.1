@@ -1,0 +1,48 @@
+.TH CAIGED-BUILD 1 "February 2026" "caiged" "User Commands"
+.SH NAME
+caiged-build \- Build the base and spin container images
+.SH SYNOPSIS
+.B caiged build
+\fIworkdir\fR [\fIflags\fR]
+.SH DESCRIPTION
+.B caiged build
+builds the Docker images required for running caiged containers. This includes:
+.IP \(bu 2
+The base image containing common dependencies and tools
+.IP \(bu 2
+The spin-specific image with additional configuration
+.PP
+Building is normally automatic when you run
+.BR caiged ,
+but this command allows you to pre-build images or rebuild them explicitly.
+.SH OPTIONS
+.TP
+.B \-\-spin \fIname\fR
+Spin name to build (default: "qa").
+.TP
+.B \-\-repo \fIpath\fR
+Path to caiged repository containing spins/Dockerfile/entrypoint.sh.
+.TP
+.B \-h, \-\-help
+Show help information.
+.SH EXAMPLES
+.TP
+Build images for the default spin:
+.B caiged build .
+.TP
+Build images for a specific spin:
+.B caiged build . \-\-spin dev
+.TP
+Build using a custom caiged repository:
+.B caiged build . \-\-repo /path/to/caiged
+.SH IMAGE NAMES
+Images are tagged as:
+.IP \(bu 2
+Base image: \fBcaiged-base\fR
+.IP \(bu 2
+Spin image: \fBcaiged-{spin}\fR (e.g., caiged-qa, caiged-dev)
+.SH SEE ALSO
+.BR caiged (1),
+.BR docker (1)
+.SH AUTHOR
+Written by the caiged development team.

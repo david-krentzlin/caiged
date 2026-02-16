@@ -1,0 +1,45 @@
+.TH CAIGED-CONNECT 1 "February 2026" "caiged" "User Commands"
+.SH NAME
+caiged-connect \- Connect to an OpenCode server with the TUI client
+.SH SYNOPSIS
+.B caiged connect
+\fIproject-name\fR
+.SH DESCRIPTION
+.B caiged connect
+launches the OpenCode TUI client connected to a running container by project name. This allows you to connect to any running caiged container from any directory without needing to navigate to the project directory.
+.PP
+The command searches for a running container matching the project name, retrieves its connection information, and launches
+.BR opencode\ attach
+with the appropriate URL and credentials.
+.SH ARGUMENTS
+.TP
+.I project-name
+The project name or slug to connect to. This can be the full project name (e.g., "my-app") or any portion that uniquely identifies the container.
+.SH EXAMPLES
+.TP
+Connect to a project named "my-app":
+.B caiged connect my-app
+.TP
+Connect to a project with a complex name:
+.B caiged connect code-myproject
+.SH CONTAINER NAMING
+Containers are named using the format:
+.B caiged-{spin}-{project}
+.PP
+The connect command searches for containers where the project portion matches the provided argument.
+.SH ERRORS
+.TP
+.B no running container found for project
+No container matching the provided project name was found. Use
+.B caiged session list
+to see all running containers.
+.TP
+.B no port found for container
+The container exists but doesn't have port information in its labels. This may indicate an older container using legacy configuration.
+.SH SEE ALSO
+.BR caiged (1),
+.BR caiged-port (1),
+.BR caiged-session (1),
+.BR opencode (1)
+.SH AUTHOR
+Written by the caiged development team.
