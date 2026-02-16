@@ -3,7 +3,6 @@ FROM debian:bookworm-slim AS base
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MISE_VERSION=2026.2.13
 ARG GH_VERSION=2.86.0
-ARG OP_VERSION=2.32.1
 ARG OPENCODE_VERSION=latest
 ARG ARCH=arm64
 
@@ -37,28 +36,19 @@ RUN apt-get update \
 RUN case "$ARCH" in \
     amd64) \
       GH_PKG_ARCH="amd64"; \
-      OP_PKG_ARCH="amd64"; \
       MISE_PKG_ARCH="linux-x64"; \
       ;; \
     arm64) \
       GH_PKG_ARCH="arm64"; \
-      OP_PKG_ARCH="arm64"; \
       MISE_PKG_ARCH="linux-arm64"; \
       ;; \
     *) echo "Unsupported arch: $ARCH (supported: amd64, arm64)" >&2; exit 1 ;; \
   esac \
   && curl -sSLo /tmp/gh.deb \
     "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_PKG_ARCH}.deb" \
-  && curl -sSLo /tmp/1password-cli.deb \
-    "https://downloads.1password.com/linux/debian/${OP_PKG_ARCH}/stable/1password-cli-${OP_PKG_ARCH}-latest.deb" \
   && apt-get update \
-  && apt-get install -y --no-install-recommends /tmp/gh.deb /tmp/1password-cli.deb \
-  && OP_INSTALLED="$(op --version)" \
-  && case "$OP_INSTALLED" in \
-    ${OP_VERSION}*) ;; \
-    *) echo "Expected op ${OP_VERSION}, got ${OP_INSTALLED}" >&2; exit 1 ;; \
-  esac \
-  && rm -f /tmp/gh.deb /tmp/1password-cli.deb \
+  && apt-get install -y --no-install-recommends /tmp/gh.deb \
+  && rm -f /tmp/gh.deb \
   && rm -rf /var/lib/apt/lists/* \
   && curl -sSLo /usr/local/bin/mise \
     "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-${MISE_PKG_ARCH}" \
@@ -83,11 +73,9 @@ WORKDIR /workspace
 COPY entrypoint.sh /usr/local/bin/agent-entrypoint
 COPY scripts/start-opencode.sh /usr/local/bin/start-opencode
 COPY scripts/comma-help.sh /usr/local/bin/,help
-COPY scripts/comma-auth-tools.sh /usr/local/bin/,auth-tools
 RUN chmod +x /usr/local/bin/agent-entrypoint \
   /usr/local/bin/start-opencode \
-  /usr/local/bin/,help \
-  /usr/local/bin/,auth-tools
+  /usr/local/bin/,help
 
 ENTRYPOINT ["/usr/local/bin/agent-entrypoint"]
 

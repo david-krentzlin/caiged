@@ -52,9 +52,9 @@ You'll see a tmux session with:
 - **shell window**: standard shell for manual commands
 
 Inside the container:
-- `,auth-tools` to authenticate gh and 1password
 - OpenCode auth is reused automatically from host `~/.local/share/opencode/auth.json` when present
 - If host OpenCode auth is missing, run OpenCode auth once inside the container (`/connect` in the OpenCode TUI)
+- For provider or service credentials, pass explicit secret env vars with `--secret-env`
 
 ### Common Workflows
 
@@ -81,6 +81,16 @@ caiged session stop-all
 **Force rebuild with latest tools:**
 ```bash
 OPENCODE_VERSION=latest caiged "$(pwd)" --spin qa --force-build
+```
+
+**Pass selected host secrets into the container:**
+```bash
+export JFROG_OIDC_USER=...
+export JFROG_OIDC_TOKEN=...
+
+caiged . --spin qa \
+  --secret-env JFROG_OIDC_USER \
+  --secret-env JFROG_OIDC_TOKEN
 ```
 
 ---
@@ -160,15 +170,21 @@ OpenCode is installed via `bun add -g opencode-ai` (default `OPENCODE_VERSION=la
 - **Docker socket**: mounted by default; disable with `--disable-docker-sock`
 - **GitHub config**: mounted read-only from `~/.config/gh`; make read-write with `--mount-gh-rw`
 - **OpenCode auth reuse**: host `~/.local/share/opencode/auth.json` is mounted read-only when available; disable with `--no-mount-opencode-auth`
+- **Secret env passthrough**: only explicitly listed host env vars are passed to the container (`--secret-env NAME`, repeatable)
 
 ### Credentials
 
-The container includes `gh` (GitHub CLI) and `op` (1Password CLI). Run `,auth-tools` or `caiged-onboard` inside the container to authenticate.
+The container includes `gh` (GitHub CLI). Host `~/.config/gh` is mounted read-only by default.
 
 OpenCode authentication behavior:
 - By default, caiged mounts host `~/.local/share/opencode/auth.json` read-only when available
 - If that file does not exist on the host, OpenCode starts unauthenticated in the container and you need to complete auth once there (`/connect`)
 - Disable host auth reuse with `--no-mount-opencode-auth`
+
+Secret environment variables:
+- Canonical approach: pass only explicit host env vars with `--secret-env`
+- Pass selected host secrets with `--secret-env NAME` (repeatable), for example `JFROG_OIDC_USER` and `JFROG_OIDC_TOKEN`
+- Or provide a Docker-compatible env file with `--secret-env-file /path/to/secrets.env`
 
 ---
 

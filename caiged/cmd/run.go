@@ -87,7 +87,6 @@ func buildImage(cfg Config, target string) error {
 		"--build-arg", fmt.Sprintf("ARCH=%s", cfg.Arch),
 		"--build-arg", fmt.Sprintf("MISE_VERSION=%s", cfg.MiseVersion),
 		"--build-arg", fmt.Sprintf("GH_VERSION=%s", cfg.GHVersion),
-		"--build-arg", fmt.Sprintf("OP_VERSION=%s", cfg.OPVersion),
 		"--build-arg", fmt.Sprintf("OPENCODE_VERSION=%s", cfg.OpencodeVersion),
 	)
 	if target == "spin" {
@@ -143,6 +142,12 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	}
 	if cfg.MountOpenCodeAuth && cfg.OpenCodeAuthPath != "" {
 		args = append(args, "-v", fmt.Sprintf("%s:/root/.local/share/opencode/auth.json:ro", cfg.OpenCodeAuthPath))
+	}
+	for _, secret := range cfg.SecretEnvs {
+		args = append(args, "-e", secret)
+	}
+	if cfg.SecretEnvFile != "" {
+		args = append(args, "--env-file", cfg.SecretEnvFile)
 	}
 
 	return args

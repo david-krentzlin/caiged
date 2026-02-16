@@ -7,12 +7,12 @@ This spin is configured for QA workflows. It ships with:
 - A host tmux session with `help`, `opencode`, and `shell` windows
 
 Quick onboarding:
-- Run `caiged-onboard` to set up gh/op/opencode auth
-- Set `OPENCODE_AUTH_CMD` if opencode needs a specific auth command
+- OpenCode auth is reused from host `~/.local/share/opencode/auth.json` when available
+- If host OpenCode auth is missing, run `/connect` inside the OpenCode TUI
+- Pass provider/service secrets using `--secret-env` (for example `JFROG_OIDC_USER`, `JFROG_OIDC_TOKEN`)
 
 In-container helpers:
 - `,help` for environment info
-- `,auth-tools` to authenticate gh and 1password
 
 Notes:
 - Network is enabled by default unless `--disable-network` is used

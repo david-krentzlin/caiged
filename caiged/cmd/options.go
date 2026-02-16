@@ -8,6 +8,8 @@ type RunOptions struct {
 	Repo                string
 	DisableNetwork      bool
 	DisableDockerSock   bool
+	SecretEnv           []string
+	SecretEnvFile       string
 	MountOpenCodeAuth   bool
 	NoMountOpenCodeAuth bool
 	MountGH             bool
@@ -29,6 +31,8 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().StringSliceVar(&opts.SecretEnv, "secret-env", nil, "Pass host secret env var into container (repeatable)")
+	cmd.Flags().StringVar(&opts.SecretEnvFile, "secret-env-file", "", "Path to env file with secret values for container")
 	cmd.Flags().BoolVar(&opts.MountOpenCodeAuth, "mount-opencode-auth", true, "Mount host OpenCode auth.json when available")
 	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
@@ -44,6 +48,8 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().StringSliceVar(&opts.SecretEnv, "secret-env", nil, "Pass host secret env var into container (repeatable)")
+	cmd.Flags().StringVar(&opts.SecretEnvFile, "secret-env-file", "", "Path to env file with secret values for container")
 	cmd.Flags().BoolVar(&opts.MountOpenCodeAuth, "mount-opencode-auth", true, "Mount host OpenCode auth.json when available")
 	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")

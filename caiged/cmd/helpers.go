@@ -6,8 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var envVarNamePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
 type Config struct {
 	WorkdirAbs        string
@@ -29,11 +32,12 @@ type Config struct {
 	MountGHPath       string
 	MountOpenCodeAuth bool
 	OpenCodeAuthPath  string
+	SecretEnvs        []string
+	SecretEnvFile     string
 	ForceBuild        bool
 	Arch              string
 	MiseVersion       string
 	GHVersion         string
-	OPVersion         string
 	OpencodeVersion   string
 }
 
@@ -95,6 +99,27 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		}
 	}
 
+	secretEnvs, err := resolveSecretEnvs(opts.SecretEnv)
+	if err != nil {
+		return Config{}, err
+	}
+
+	secretEnvFile := ""
+	if opts.SecretEnvFile != "" {
+		candidate, err := filepath.Abs(opts.SecretEnvFile)
+		if err != nil {
+			return Config{}, err
+		}
+		info, err := os.Stat(candidate)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid secret env file: %s", candidate)
+		}
+		if info.IsDir() {
+			return Config{}, fmt.Errorf("invalid secret env file: %s is a directory", candidate)
+		}
+		secretEnvFile = candidate
+	}
+
 	config := Config{
 		WorkdirAbs:        workdirAbs,
 		RepoRoot:          repoRoot,
@@ -115,11 +140,12 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		MountGHPath:       mountGHPath,
 		MountOpenCodeAuth: opts.MountOpenCodeAuth,
 		OpenCodeAuthPath:  opencodeAuthPath,
+		SecretEnvs:        secretEnvs,
+		SecretEnvFile:     secretEnvFile,
 		ForceBuild:        opts.ForceBuild,
 		Arch:              envOrDefault("ARCH", "arm64"),
 		MiseVersion:       envOrDefault("MISE_VERSION", "2026.2.13"),
 		GHVersion:         envOrDefault("GH_VERSION", "2.86.0"),
-		OPVersion:         envOrDefault("OP_VERSION", "2.32.1"),
 		OpencodeVersion:   envOrDefault("OPENCODE_VERSION", "latest"),
 	}
 
@@ -232,6 +258,30 @@ func hostOpenCodeAuthPath(homeDir string) string {
 		return candidate
 	}
 	return ""
+}
+
+func resolveSecretEnvs(names []string) ([]string, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+
+	values := make([]string, 0, len(names))
+	for _, name := range names {
+		clean := strings.TrimSpace(name)
+		if clean == "" {
+			continue
+		}
+		if !envVarNamePattern.MatchString(clean) {
+			return nil, fmt.Errorf("invalid secret env name: %s", clean)
+		}
+		value, ok := os.LookupEnv(clean)
+		if !ok {
+			return nil, fmt.Errorf("missing host secret env: %s", clean)
+		}
+		values = append(values, clean+"="+value)
+	}
+
+	return values, nil
 }
 
 func deriveProjectName(path string) string {

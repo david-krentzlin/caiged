@@ -223,3 +223,49 @@ func TestHostOpenCodeAuthPath(t *testing.T) {
 		t.Fatalf("expected OpenCode auth path %q, got %q", authFile, got)
 	}
 }
+
+func TestResolveSecretEnvs(t *testing.T) {
+	original, hadOriginal := os.LookupEnv("JFROG_OIDC_USER")
+	t.Cleanup(func() {
+		if hadOriginal {
+			_ = os.Setenv("JFROG_OIDC_USER", original)
+		} else {
+			_ = os.Unsetenv("JFROG_OIDC_USER")
+		}
+	})
+
+	if err := os.Setenv("JFROG_OIDC_USER", "ci-user"); err != nil {
+		t.Fatalf("set env: %v", err)
+	}
+
+	values, err := resolveSecretEnvs([]string{"JFROG_OIDC_USER"})
+	if err != nil {
+		t.Fatalf("resolveSecretEnvs: %v", err)
+	}
+	if len(values) != 1 || values[0] != "JFROG_OIDC_USER=ci-user" {
+		t.Fatalf("unexpected values: %v", values)
+	}
+
+	if _, err := resolveSecretEnvs([]string{"invalid-name"}); err == nil {
+		t.Fatalf("expected invalid env name error")
+	}
+	if _, err := resolveSecretEnvs([]string{"MISSING_SECRET_ENV"}); err == nil {
+		t.Fatalf("expected missing host secret env error")
+	}
+}
+
+func TestDockerRunArgsIncludesSecretEnvs(t *testing.T) {
+	cfg := Config{
+		WorkdirAbs:    "/tmp/work",
+		EnableNetwork: true,
+		SecretEnvs:    []string{"JFROG_OIDC_USER=ci-user", "JFROG_OIDC_TOKEN=topsecret"},
+	}
+
+	args := dockerRunArgs(cfg, dockerRunDetached)
+	if !slices.Contains(args, "JFROG_OIDC_USER=ci-user") {
+		t.Fatalf("expected secret env to be present in docker args: %v", args)
+	}
+	if !slices.Contains(args, "JFROG_OIDC_TOKEN=topsecret") {
+		t.Fatalf("expected secret env to be present in docker args: %v", args)
+	}
+}

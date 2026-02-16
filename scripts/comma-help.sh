@@ -30,5 +30,6 @@ Commands:
 
 Notes:
   - AGENTS.md and skills are copied into ${CONFIG_DIR}
+  - Use --secret-env/--secret-env-file to pass host secrets into the container
   - Network uses host mode by default unless disabled at launch
 EOF
