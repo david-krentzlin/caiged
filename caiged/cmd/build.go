@@ -6,12 +6,12 @@ func newBuildCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build <workdir>",
 		Short: "Build the base and spin container images",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return buildCommand(args, runOpts)
 		},
 	}
-	addRunFlags(cmd, &runOpts)
+	addBuildFlags(cmd, &runOpts)
 	return cmd
 }
 

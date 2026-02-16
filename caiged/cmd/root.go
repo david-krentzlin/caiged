@@ -15,7 +15,7 @@ var rootCmd = &cobra.Command{
 		if len(args) == 0 {
 			return cmd.Help()
 		}
-		return runCommand(cmd, args, runOpts, false)
+		return runCommand(args, runOpts, false)
 	},
 }
 

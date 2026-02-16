@@ -6,7 +6,7 @@ func newResetSessionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reset-session <workdir>",
 		Short: "Reset the host tmux session for a spin",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := resolveConfig(runOpts, args[0])
 			if err != nil {

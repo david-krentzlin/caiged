@@ -30,6 +30,8 @@ This spins up a QA-focused container and attaches you to a tmux session with thr
 ### Installation
 
 ```bash
+git clone <path-to-repo> ~/.caiged
+cd ~/.caiged
 make install
 ```
 
@@ -38,8 +40,11 @@ This builds the CLI and copies it to `~/.local/bin/caiged`.
 ### Run Your First Spin
 
 ```bash
+cd /path/to/your/project
 caiged . --spin qa
 ```
+
+Equivalent explicit form: `caiged run . --spin qa`.
 
 You'll see a tmux session with:
 - **help window**: type `,help` for environment info

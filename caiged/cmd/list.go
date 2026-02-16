@@ -15,10 +15,14 @@ func newListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 			fmt.Println("Running containers:")
-			_ = execCommand("docker", []string{"ps", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr})
+			if err := execCommand("docker", []string{"ps", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr}); err != nil {
+				return fmt.Errorf("list running containers: %w", err)
+			}
 			fmt.Println()
 			fmt.Println("All containers:")
-			_ = execCommand("docker", []string{"ps", "-a", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr})
+			if err := execCommand("docker", []string{"ps", "-a", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr}); err != nil {
+				return fmt.Errorf("list all containers: %w", err)
+			}
 			fmt.Println()
 			if commandExists("tmux") {
 				fmt.Println("Tmux sessions:")
@@ -35,7 +39,7 @@ func newListCmd() *cobra.Command {
 						}
 					}
 				} else {
-					fmt.Println("(none)")
+					fmt.Fprintln(os.Stderr, "warning: unable to list tmux sessions:", err)
 				}
 			} else {
 				fmt.Println("Tmux sessions: tmux not available")

@@ -6,7 +6,7 @@ func newRestartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "restart <workdir>",
 		Short: "Stop container and reset tmux session",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return restartCommand(args, runOpts)
 		},
@@ -24,5 +24,5 @@ func restartCommand(args []string, opts RunOptions) error {
 	resetSession(config)
 	stopContainer(config)
 
-	return runCommand(nil, args, opts, false)
+	return runCommand(args, opts, false)
 }

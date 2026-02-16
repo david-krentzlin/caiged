@@ -15,14 +15,14 @@ func newRunCmd() *cobra.Command {
 		Short: "Run a spin and attach via host tmux",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCommand(cmd, args, runOpts, false)
+			return runCommand(args, runOpts, false)
 		},
 	}
 	addRunFlags(cmd, &runOpts)
 	return cmd
 }
 
-func runCommand(cmd *cobra.Command, args []string, opts RunOptions, isAttach bool) error {
+func runCommand(args []string, opts RunOptions, isAttach bool) error {
 	workdir := args[0]
 	commandArgs := args[1:]
 
@@ -110,6 +110,51 @@ func containerRunning(cfg Config) bool {
 	return strings.TrimSpace(output) == "true"
 }
 
+type dockerRunMode int
+
+const (
+	dockerRunDetached dockerRunMode = iota
+	dockerRunOneShot
+)
+
+func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
+	args := []string{"run"}
+	if mode == dockerRunDetached {
+		args = append(args, "-d", "--rm", "--name", cfg.ContainerName)
+	} else {
+		args = append(args, "--rm", "-it")
+	}
+
+	args = append(args, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs))
+	if !cfg.EnableNetwork {
+		args = append(args, "--network=none")
+	} else {
+		args = append(args, "--network=host")
+	}
+	if !cfg.DisableDockerSock {
+		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
+	}
+	if cfg.MountGH && cfg.MountGHPath != "" {
+		mount := fmt.Sprintf("%s:/root/.config/gh", cfg.MountGHPath)
+		if !cfg.MountGHRW {
+			mount = mount + ":ro"
+		}
+		args = append(args, "-v", mount)
+	}
+
+	return args
+}
+
+func wrapNetworkRunError(cfg Config, err error) error {
+	if err == nil {
+		return nil
+	}
+	if cfg.EnableNetwork {
+		return fmt.Errorf("docker run failed with host networking: %w (host networking is required for OAuth callbacks; if unsupported in Docker Desktop, enable host networking or use --disable-network)", err)
+	}
+	return err
+}
+
 func startContainerDetached(cfg Config) error {
 	if containerRunning(cfg) {
 		return nil
@@ -118,48 +163,32 @@ func startContainerDetached(cfg Config) error {
 		_ = execCommand("docker", []string{"rm", "-f", cfg.ContainerName}, ExecOptions{})
 	}
 
-	args := []string{"run", "-d", "--rm", "--name", cfg.ContainerName, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs)}
-	if !cfg.EnableNetwork {
-		args = append(args, "--network=none")
-	} else {
-		args = append(args, "--network=host")
-	}
-	if !cfg.DisableDockerSock {
-		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
-	}
-	if cfg.MountGH && cfg.MountGHPath != "" {
-		mount := fmt.Sprintf("%s:/root/.config/gh", cfg.MountGHPath)
-		if !cfg.MountGHRW {
-			mount = mount + ":ro"
-		}
-		args = append(args, "-v", mount)
-	}
+	args := dockerRunArgs(cfg, dockerRunDetached)
 	args = append(args, "-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin), "-e", "AGENT_DAEMON=1", cfg.SpinImage)
 
-	return execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr})
+	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr}))
 }
 
 func runContainerCommand(cfg Config, command []string) error {
-	args := []string{"run", "--rm", "-it", "--name", cfg.ContainerName, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs)}
-	if !cfg.EnableNetwork {
-		args = append(args, "--network=none")
-	} else {
-		args = append(args, "--network=host")
-	}
-	if !cfg.DisableDockerSock {
-		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
-	}
-	if cfg.MountGH && cfg.MountGHPath != "" {
-		mount := fmt.Sprintf("%s:/root/.config/gh", cfg.MountGHPath)
-		if !cfg.MountGHRW {
-			mount = mount + ":ro"
-		}
-		args = append(args, "-v", mount)
-	}
+	args := dockerRunArgs(cfg, dockerRunOneShot)
 	args = append(args, "-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin), cfg.SpinImage)
 	args = append(args, command...)
 
-	return execCommand("docker", args, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
+}
+
+type tmuxWindowSet struct {
+	shell    string
+	help     string
+	opencode string
+}
+
+func tmuxWindowCommands(cfg Config) tmuxWindowSet {
+	return tmuxWindowSet{
+		shell:    fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=shell %s %s", cfg.ContainerName, cfg.ContainerShell),
+		help:     fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=help %s /bin/zsh -lc '/usr/local/bin/,help; exec %s'", cfg.ContainerName, cfg.ContainerShell),
+		opencode: fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=opencode %s /bin/zsh -lc '/usr/local/bin/start-opencode; exec %s'", cfg.ContainerName, cfg.ContainerShell),
+	}
 }
 
 func ensureTmuxSession(cfg Config) bool {
@@ -173,17 +202,15 @@ func ensureTmuxSession(cfg Config) bool {
 		return true
 	}
 
-	shellCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=shell %s %s", cfg.ContainerName, cfg.ContainerShell)
-	helpCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=help %s /bin/zsh -lc '/usr/local/bin/,help; exec %s'", cfg.ContainerName, cfg.ContainerShell)
-	opencodeCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=opencode %s /bin/zsh -lc '/usr/local/bin/start-opencode; exec %s'", cfg.ContainerName, cfg.ContainerShell)
+	commands := tmuxWindowCommands(cfg)
 
-	if err := execCommand("tmux", []string{"new-session", "-d", "-s", cfg.SessionName, "-n", "help", helpCmd}, ExecOptions{}); err != nil {
+	if err := execCommand("tmux", []string{"new-session", "-d", "-s", cfg.SessionName, "-n", "help", commands.help}, ExecOptions{}); err != nil {
 		return false
 	}
 	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "automatic-rename", "off"}, ExecOptions{})
 	_ = execCommand("tmux", []string{"set-option", "-t", cfg.SessionName, "allow-rename", "off"}, ExecOptions{})
-	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", opencodeCmd}, ExecOptions{})
-	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", shellCmd}, ExecOptions{})
+	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", commands.opencode}, ExecOptions{})
+	_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", commands.shell}, ExecOptions{})
 	orderTmuxWindows(cfg)
 	return true
 }
@@ -206,18 +233,16 @@ func ensureTmuxWindows(cfg Config) {
 		windowNames[line] = true
 	}
 
-	shellCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=shell %s %s", cfg.ContainerName, cfg.ContainerShell)
-	helpCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=help %s /bin/zsh -lc '/usr/local/bin/,help; exec %s'", cfg.ContainerName, cfg.ContainerShell)
-	opencodeCmd := fmt.Sprintf("docker exec -it -e CAIGED_WINDOW=opencode %s /bin/zsh -lc '/usr/local/bin/start-opencode; exec %s'", cfg.ContainerName, cfg.ContainerShell)
+	commands := tmuxWindowCommands(cfg)
 
 	if !windowNames["help"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "help", helpCmd}, ExecOptions{})
+		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "help", commands.help}, ExecOptions{})
 	}
 	if !windowNames["opencode"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", opencodeCmd}, ExecOptions{})
+		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "opencode", commands.opencode}, ExecOptions{})
 	}
 	if !windowNames["shell"] {
-		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", shellCmd}, ExecOptions{})
+		_ = execCommand("tmux", []string{"new-window", "-t", cfg.SessionName, "-n", "shell", commands.shell}, ExecOptions{})
 	}
 
 	orderTmuxWindows(cfg)

@@ -10,19 +10,19 @@ func newAttachCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "attach <session-or-workdir>",
 		Short: "Attach to a host tmux session or container shell",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return attachCommand(args, runOpts)
 		},
 	}
-	addRunFlags(cmd, &runOpts)
+	addAttachFlags(cmd, &runOpts)
 	return cmd
 }
 
 func attachCommand(args []string, opts RunOptions) error {
 	target := args[0]
 	if info, err := os.Stat(target); err == nil && info.IsDir() {
-		return runCommand(nil, args, opts, true)
+		return runCommand(args, opts, true)
 	}
 
 	if commandExists("tmux") {

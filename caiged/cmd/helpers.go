@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -59,6 +58,9 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 	spinDir := filepath.Join(repoRoot, "spins", spin)
 	if _, err := os.Stat(spinDir); err != nil {
 		return Config{}, fmt.Errorf("unknown spin: %s (missing %s)", spin, spinDir)
+	}
+	if err := validateSpinDir(spinDir); err != nil {
+		return Config{}, err
 	}
 
 	project := opts.Project
@@ -190,6 +192,28 @@ func isCaigedRoot(path string) bool {
 	return true
 }
 
+func validateSpinDir(spinDir string) error {
+	agentsPath := filepath.Join(spinDir, "AGENTS.md")
+	legacyAgentPath := filepath.Join(spinDir, "AGENT.md")
+	if _, err := os.Stat(agentsPath); err != nil {
+		if _, legacyErr := os.Stat(legacyAgentPath); legacyErr != nil {
+			return fmt.Errorf("invalid spin: missing AGENTS.md (or legacy AGENT.md) in %s", spinDir)
+		}
+	}
+
+	skillsPath := filepath.Join(spinDir, "skills")
+	if info, err := os.Stat(skillsPath); err == nil && !info.IsDir() {
+		return fmt.Errorf("invalid spin: skills is not a directory in %s", spinDir)
+	}
+
+	mcpPath := filepath.Join(spinDir, "mcp")
+	if info, err := os.Stat(mcpPath); err == nil && !info.IsDir() {
+		return fmt.Errorf("invalid spin: mcp is not a directory in %s", spinDir)
+	}
+
+	return nil
+}
+
 func deriveProjectName(path string) string {
 	clean := filepath.ToSlash(filepath.Clean(path))
 	parts := strings.Split(clean, "/")
@@ -295,11 +319,4 @@ func resetSession(cfg Config) {
 		return
 	}
 	_ = execCommand("tmux", []string{"kill-session", "-t", cfg.SessionName}, ExecOptions{})
-}
-
-func wrapErr(message string, err error) error {
-	if err == nil {
-		return nil
-	}
-	return errors.New(message + ": " + err.Error())
 }

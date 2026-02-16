@@ -13,6 +13,7 @@ func newStopAllCmd() *cobra.Command {
 		Short: "Stop all caiged containers and tmux sessions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
+			errorsList := make([]string, 0)
 			if commandExists("tmux") {
 				output, err := runCapture("tmux", []string{"list-sessions", "-F", "#{session_name}"}, ExecOptions{})
 				if err == nil {
@@ -22,9 +23,13 @@ func newStopAllCmd() *cobra.Command {
 							continue
 						}
 						if strings.HasPrefix(line, prefix+"-") {
-							_ = execCommand("tmux", []string{"kill-session", "-t", line}, ExecOptions{})
+							if killErr := execCommand("tmux", []string{"kill-session", "-t", line}, ExecOptions{}); killErr != nil {
+								errorsList = append(errorsList, fmt.Sprintf("kill tmux session %s: %v", line, killErr))
+							}
 						}
 					}
+				} else {
+					errorsList = append(errorsList, fmt.Sprintf("list tmux sessions: %v", err))
 				}
 			}
 
@@ -35,8 +40,16 @@ func newStopAllCmd() *cobra.Command {
 					if line == "" {
 						continue
 					}
-					_ = execCommand("docker", []string{"rm", "-f", line}, ExecOptions{})
+					if rmErr := execCommand("docker", []string{"rm", "-f", line}, ExecOptions{}); rmErr != nil {
+						errorsList = append(errorsList, fmt.Sprintf("remove container %s: %v", line, rmErr))
+					}
 				}
+			} else {
+				errorsList = append(errorsList, fmt.Sprintf("list containers: %v", err))
+			}
+
+			if len(errorsList) > 0 {
+				return fmt.Errorf("stop-all completed with errors: %s", strings.Join(errorsList, "; "))
 			}
 			return nil
 		},

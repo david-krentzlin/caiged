@@ -34,6 +34,23 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().BoolVar(&opts.DetachOnly, "no-attach", false, "Start container without attaching")
 }
 
+func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
+	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
+	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
+	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
+	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
+	cmd.Flags().BoolVar(&opts.ForceBuild, "force-build", false, "Rebuild base and spin images")
+}
+
+func addBuildFlags(cmd *cobra.Command, opts *RunOptions) {
+	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+}
+
 func normalizeOptions(opts RunOptions) RunOptions {
 	if opts.NoMountGH {
 		opts.MountGH = false

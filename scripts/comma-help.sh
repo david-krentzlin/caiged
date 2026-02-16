@@ -23,5 +23,5 @@ Commands:
 
 Notes:
   - AGENTS.md and skills are copied into ${CONFIG_DIR}
-  - Network is enabled by default unless disabled at launch
+  - Network uses host mode by default unless disabled at launch
 EOF
