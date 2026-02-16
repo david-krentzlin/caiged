@@ -13,11 +13,11 @@ runs isolated OpenCode agent environments ("spins") in Docker containers. Each c
 .PP
 When invoked without a subcommand,
 .B caiged
-will intelligently attach to an existing container for the project/spin if one exists, or create a new container if none exists.
+will build images if they don't exist (or --rebuild-images is set), then intelligently attach to an existing container for the project/spin if one exists, or create a new container if none exists.
 .SH OPTIONS
 .TP
 .B \-\-spin \fIname\fR
-Spin name (default: "qa"). Spins are isolated environments that can run different agent configurations.
+Spin name (required). Spins are isolated environments that can run different agent configurations.
 .TP
 .B \-\-project \fIname\fR
 Override project name for container naming. By default, the project name is derived from the working directory.
@@ -28,9 +28,6 @@ Path to caiged repository containing spins/Dockerfile/entrypoint.sh.
 .B \-\-rebuild-images
 Force rebuild of base and spin Docker images before running.
 .TP
-.B \-\-disable-network
-Disable network access in the container.
-.TP
 .B \-\-disable-docker-sock
 Disable Docker socket mount (prevents container from accessing host Docker).
 .TP
@@ -40,20 +37,14 @@ Pass a host environment variable into the container. Can be specified multiple t
 .B \-\-secret-env-file \fIpath\fR
 Path to an environment file with secret values to pass into the container.
 .TP
-.B \-\-mount-opencode-auth
-Mount host OpenCode auth.json when available (default: true).
-.TP
 .B \-\-no-mount-opencode-auth
-Do not mount host OpenCode auth.json.
-.TP
-.B \-\-mount-gh
-Mount host GitHub CLI configuration when available (default: true, read-only).
+Do not mount host OpenCode auth.json (default: mounts read-only).
 .TP
 .B \-\-mount-gh-rw
-Mount host GitHub CLI configuration in read-write mode.
+Mount host GitHub CLI configuration in read-write mode (default: read-only).
 .TP
 .B \-\-no-mount-gh
-Do not mount host GitHub CLI configuration.
+Do not mount host GitHub CLI configuration (default: mounts read-only).
 .TP
 .B \-\-no-attach
 Start the container without attaching to it.
@@ -68,33 +59,27 @@ Build the base and spin container images. See \fBcaiged-build\fR(1).
 .B connect
 Connect to an existing container by project name. See \fBcaiged-connect\fR(1).
 .TP
-.B port
-Show connection information for a project's container. See \fBcaiged-port\fR(1).
-.TP
 .B session
 Manage containers and sessions. See \fBcaiged-session\fR(1).
 .SH EXAMPLES
 .TP
-Run or attach to default spin (qa) in current directory:
-.B caiged .
+Run or attach to qa spin in current directory:
+.B caiged . \-\-spin qa
 .TP
 Run or attach to a dev spin:
 .B caiged . \-\-spin dev
 .TP
-Create container without attaching:
-.B caiged . \-\-no-attach
+Rebuild images before running:
+.B caiged . \-\-spin qa \-\-rebuild-images
 .TP
-Run with network disabled:
-.B caiged . \-\-disable-network
+Create container without attaching:
+.B caiged . \-\-spin qa \-\-no-attach
 .TP
 Pass secret environment variables:
-.B caiged . \-\-secret-env API_KEY \-\-secret-env DATABASE_URL
+.B caiged . \-\-spin qa \-\-secret-env API_KEY \-\-secret-env DATABASE_URL
 .TP
 Connect to an existing project from any directory:
 .B caiged connect my-project
-.TP
-Rebuild images before running:
-.B caiged . \-\-rebuild-images
 .SH CONTAINER BEHAVIOR
 Containers are named using the format:
 .B caiged-{spin}-{project}
@@ -119,7 +104,6 @@ GitHub CLI configuration directory, mounted read-only by default.
 .SH SEE ALSO
 .BR caiged-build (1),
 .BR caiged-connect (1),
-.BR caiged-port (1),
 .BR caiged-session (1),
 .BR docker (1),
 .BR opencode (1)
