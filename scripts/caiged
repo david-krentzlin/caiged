@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: caiged <working-dir> [options] [-- <command>]
+
+Options:
+  --task <name>          Spin name (default: qa)
+  --project <name>       Project name for container naming
+  --enable-network       Enable network access (default: disabled)
+  --enable-docker-sock   Mount /var/run/docker.sock (default: enabled)
+  --disable-docker-sock  Do not mount /var/run/docker.sock
+  --force-build          Rebuild base and spin images
+  --tmux                 Start tmux in the container
+  -h, --help             Show this help
+EOF
+}
+
+SPIN="qa"
+PROJECT_NAME=""
+ENABLE_NETWORK=0
+ENABLE_DOCKER_SOCK=1
+FORCE_BUILD=0
+ENABLE_TMUX=0
+WORKDIR=""
+COMMAND_ARGS=()
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --task)
+      SPIN="$2"
+      shift 2
+      ;;
+    --project)
+      PROJECT_NAME="$2"
+      shift 2
+      ;;
+    --enable-network)
+      ENABLE_NETWORK=1
+      shift
+      ;;
+    --enable-docker-sock)
+      ENABLE_DOCKER_SOCK=1
+      shift
+      ;;
+    --disable-docker-sock)
+      ENABLE_DOCKER_SOCK=0
+      shift
+      ;;
+    --force-build)
+      FORCE_BUILD=1
+      shift
+      ;;
+    --tmux)
+      ENABLE_TMUX=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      COMMAND_ARGS+=("$@")
+      break
+      ;;
+    -* )
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+    *)
+      if [ -z "$WORKDIR" ]; then
+        WORKDIR="$1"
+        shift
+      else
+        COMMAND_ARGS+=("$1")
+        shift
+      fi
+      ;;
+  esac
+done
+
+if [ -z "$WORKDIR" ]; then
+  echo "Missing working directory." >&2
+  usage
+  exit 1
+fi
+
+if [ ! -d "$WORKDIR" ]; then
+  echo "Working directory does not exist: $WORKDIR" >&2
+  exit 1
+fi
+
+WORKDIR_ABS="$(cd "$WORKDIR" && pwd)"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+SPIN_DIR="${REPO_ROOT}/spins/${SPIN}"
+if [ ! -d "$SPIN_DIR" ]; then
+  echo "Unknown spin: $SPIN (missing $SPIN_DIR)" >&2
+  exit 1
+fi
+
+IMAGE_PREFIX="${IMAGE_PREFIX:-caiged}"
+BASE_IMAGE="${IMAGE_PREFIX}:base"
+SPIN_IMAGE="${IMAGE_PREFIX}:${SPIN}"
+
+if [ -z "$PROJECT_NAME" ]; then
+  IFS='/' read -r -a path_parts <<< "$WORKDIR_ABS"
+  filtered_parts=()
+  for part in "${path_parts[@]}"; do
+    if [ -n "$part" ]; then
+      filtered_parts+=("$part")
+    fi
+  done
+  part_count="${#filtered_parts[@]}"
+  if [ "$part_count" -ge 2 ]; then
+    PROJECT_NAME="${filtered_parts[$((part_count - 2))]}-${filtered_parts[$((part_count - 1))]}"
+  elif [ "$part_count" -eq 1 ]; then
+    PROJECT_NAME="${filtered_parts[0]}"
+  else
+    PROJECT_NAME="workspace"
+  fi
+fi
+
+PROJECT_SLUG="${PROJECT_NAME,,}"
+PROJECT_SLUG="${PROJECT_SLUG// /-}"
+PROJECT_CLEAN=""
+for ((i=0; i<${#PROJECT_SLUG}; i++)); do
+  char="${PROJECT_SLUG:i:1}"
+  case "$char" in
+    [a-z0-9_.-]) PROJECT_CLEAN+="$char" ;;
+    *) PROJECT_CLEAN+="-" ;;
+  esac
+done
+
+while [ -n "$PROJECT_CLEAN" ]; do
+  case "${PROJECT_CLEAN:0:1}" in
+    [a-z0-9]) break ;;
+    *) PROJECT_CLEAN="${PROJECT_CLEAN:1}" ;;
+  esac
+done
+
+while [ -n "$PROJECT_CLEAN" ]; do
+  case "${PROJECT_CLEAN: -1}" in
+    [a-z0-9]) break ;;
+    *) PROJECT_CLEAN="${PROJECT_CLEAN%?}" ;;
+  esac
+done
+
+if [ -z "$PROJECT_CLEAN" ]; then
+  PROJECT_CLEAN="workspace"
+fi
+
+CONTAINER_NAME="${IMAGE_PREFIX}-${SPIN}-${PROJECT_CLEAN}"
+
+ARCH="${ARCH:-arm64}"
+MISE_VERSION="${MISE_VERSION:-2026.2.13}"
+GH_VERSION="${GH_VERSION:-2.86.0}"
+OP_VERSION="${OP_VERSION:-2.32.1}"
+OPENCODE_VERSION="${OPENCODE_VERSION:-latest}"
+
+build_base() {
+  docker build --target base \
+    -t "$BASE_IMAGE" \
+    --build-arg ARCH="$ARCH" \
+    --build-arg MISE_VERSION="$MISE_VERSION" \
+    --build-arg GH_VERSION="$GH_VERSION" \
+    --build-arg OP_VERSION="$OP_VERSION" \
+    --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+    "$REPO_ROOT"
+}
+
+build_spin() {
+  docker build --target spin \
+    -t "$SPIN_IMAGE" \
+    --build-arg ARCH="$ARCH" \
+    --build-arg MISE_VERSION="$MISE_VERSION" \
+    --build-arg GH_VERSION="$GH_VERSION" \
+    --build-arg OP_VERSION="$OP_VERSION" \
+    --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+    --build-arg SPIN="$SPIN" \
+    "$REPO_ROOT"
+}
+
+if [ "$FORCE_BUILD" -eq 1 ]; then
+  build_base
+  build_spin
+else
+  if ! docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
+    build_base
+  fi
+  if ! docker image inspect "$SPIN_IMAGE" >/dev/null 2>&1; then
+    build_spin
+  fi
+fi
+
+RUN_ARGS=(--rm -it --name "$CONTAINER_NAME" -v "$WORKDIR_ABS:/workspace")
+
+if [ "$ENABLE_NETWORK" -eq 0 ]; then
+  RUN_ARGS+=(--network=none)
+fi
+
+if [ "$ENABLE_DOCKER_SOCK" -eq 1 ]; then
+  RUN_ARGS+=(-v /var/run/docker.sock:/var/run/docker.sock)
+fi
+
+if [ "$ENABLE_TMUX" -eq 1 ]; then
+  RUN_ARGS+=(-e AGENT_TMUX=1)
+fi
+
+RUN_ARGS+=(-e AGENT_SPIN="$SPIN")
+
+if [ "${#COMMAND_ARGS[@]}" -gt 0 ]; then
+  docker run "${RUN_ARGS[@]}" "$SPIN_IMAGE" "${COMMAND_ARGS[@]}"
+else
+  docker run "${RUN_ARGS[@]}" "$SPIN_IMAGE"
+fi
