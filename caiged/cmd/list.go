@@ -36,10 +36,29 @@ func newListCmd() *cobra.Command {
 					// Extract project name from container name (remove prefix)
 					projectName := strings.TrimPrefix(containerName, prefix+"-")
 
+					// Get the port from the container label
+					port := ""
+					portOutput, err := runCapture("docker", []string{"inspect", "--format", "{{index .Config.Labels \"opencode.port\"}}", containerName}, ExecOptions{})
+					if err == nil {
+						port = strings.TrimSpace(portOutput)
+					}
+
+					// Generate the password
+					password := ""
+					if pwd, err := generateOpencodePassword(containerName); err == nil {
+						password = pwd
+					}
+
 					fmt.Println()
 					fmt.Printf("  📦 %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(projectName))
-					fmt.Printf("     Container: %s\n", containerName)
+					fmt.Printf("     %s %s\n", LabelStyle.Render("Container:"), containerName)
 					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), RunningStyle.Render(status))
+					if port != "" {
+						fmt.Printf("     %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%s", port)))
+						if password != "" {
+							fmt.Printf("     %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(password))
+						}
+					}
 					fmt.Println()
 					fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), projectName)
 					fmt.Printf("     %s    docker exec -it %s /bin/zsh\n", LabelStyle.Render("Shell:"), containerName)
@@ -77,10 +96,29 @@ func newListCmd() *cobra.Command {
 						statusStyle = StoppedStyle
 					}
 
+					// Get the port from the container label (only for running containers)
+					port := ""
+					password := ""
+					if isRunning {
+						portOutput, err := runCapture("docker", []string{"inspect", "--format", "{{index .Config.Labels \"opencode.port\"}}", containerName}, ExecOptions{})
+						if err == nil {
+							port = strings.TrimSpace(portOutput)
+						}
+						if pwd, err := generateOpencodePassword(containerName); err == nil {
+							password = pwd
+						}
+					}
+
 					fmt.Println()
 					fmt.Printf("  📦 %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(projectName))
-					fmt.Printf("     Container: %s\n", containerName)
+					fmt.Printf("     %s %s\n", LabelStyle.Render("Container:"), containerName)
 					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), statusStyle.Render(status))
+					if port != "" {
+						fmt.Printf("     %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%s", port)))
+						if password != "" {
+							fmt.Printf("     %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(password))
+						}
+					}
 					fmt.Println()
 
 					// Only show connect command for running containers

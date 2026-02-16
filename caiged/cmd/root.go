@@ -51,6 +51,5 @@ func init() {
 
 	rootCmd.AddCommand(newBuildCmd())
 	rootCmd.AddCommand(newSessionCmd())
-	rootCmd.AddCommand(newPortCmd())
 	rootCmd.AddCommand(newConnectCmd())
 }
