@@ -120,6 +120,17 @@ Spins live under `spins/` and define a role-specific environment:
 **Available spins:**
 - `qa`: exhaustive testing, security/reliability reviews, performance analysis
 
+**Creating new spins:**
+
+The build process automatically handles new spins - just create a directory under `spins/<name>/` with the required files and run:
+
+```bash
+caiged build . --spin <name>
+caiged . --spin <name>
+```
+
+See [SPINS.md](SPINS.md) for detailed instructions on creating and contributing spins
+
 ---
 
 ## Configuration

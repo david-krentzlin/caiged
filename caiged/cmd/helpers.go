@@ -96,7 +96,7 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		ContainerName:     containerName,
 		SessionName:       containerName,
 		ContainerShell:    containerShell,
-		EnableNetwork:     opts.EnableNetwork,
+		EnableNetwork:     !opts.DisableNetwork,
 		DisableDockerSock: opts.DisableDockerSock,
 		MountGH:           opts.MountGH,
 		MountGHRW:         opts.MountGHRW,

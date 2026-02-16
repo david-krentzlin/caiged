@@ -6,7 +6,6 @@ type RunOptions struct {
 	Spin              string
 	Project           string
 	Repo              string
-	EnableNetwork     bool
 	DisableNetwork    bool
 	DisableDockerSock bool
 	MountGH           bool
@@ -26,7 +25,6 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
-	cmd.Flags().BoolVar(&opts.EnableNetwork, "enable-network", true, "Enable network access")
 	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
@@ -37,9 +35,6 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 }
 
 func normalizeOptions(opts RunOptions) RunOptions {
-	if opts.DisableNetwork {
-		opts.EnableNetwork = false
-	}
 	if opts.NoMountGH {
 		opts.MountGH = false
 		opts.MountGHRW = false
