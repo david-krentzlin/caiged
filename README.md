@@ -6,6 +6,26 @@ Run your coding agent in a dockerized environment tailored to a specific role.
 caiged "$(pwd)" --spin qa
 ```
 
+Diagram (host vs container responsibilities):
+
+```mermaid
+flowchart TB
+  subgraph Host[Host Machine]
+    CLI[caiged CLI]
+    TMUX[tmux (host)\nwindows: help / opencode / shell]
+    TERM[your terminal]
+    CLI -->|creates session| TMUX
+    TMUX -->|attach/switch| TERM
+  end
+
+  subgraph Container[Container]
+    IMG[spin image (qa/...)\n- tools via mise\n- opencode config\n- scripts: ,help, auth]
+  end
+
+  CLI -->|docker run| IMG
+  TMUX -->|docker exec (help/opencode/shell)| IMG
+```
+
 This will spin up a docker container preconfigured for the QA agent.
 Then it will create or attach to a tmux session that connects into that container.
 
@@ -44,7 +64,7 @@ Primary subcommands:
 
 ## Run examples
 
-QA spin with network disabled (default):
+QA spin with network enabled (default):
 
 ```bash
 caiged /path/to/workdir --spin qa

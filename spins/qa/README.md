@@ -4,7 +4,7 @@ This spin is configured for QA workflows. It ships with:
 - QA-oriented instructions in AGENT.md
 - QA skills under `spins/qa/skills`
 - MCP config under `spins/qa/mcp`
-- A tmux session that opens this README on start
+- A host tmux session with `help`, `opencode`, and `shell` windows
 
 Quick onboarding:
 - Run `caiged-onboard` to set up gh/op/opencode auth
