@@ -13,14 +13,15 @@ var rootCmd = &cobra.Command{
 	Long: `caiged - Run isolated OpenCode agent spins in Docker
 
 Without a subcommand, caiged will:
+  - Build images if they don't exist (or --rebuild-images is set)
   - Attach to an existing container for this project/spin if one exists
   - Create a new container and attach if none exists
 
 Examples:
-  caiged .                    # Run/attach to default spin (qa) in current directory
+  caiged . --spin qa          # Run/attach to qa spin in current directory
   caiged . --spin dev         # Run/attach to dev spin
   caiged connect <project>    # Connect to a project by name (from any directory)
-  caiged build                # Build Docker images
+  caiged build --spin qa      # Build Docker images for qa spin
   caiged session list         # List all containers`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,7 +49,6 @@ func init() {
 	addCommonFlags(rootCmd)
 	addRunFlags(rootCmd, &runOpts) // Add run flags to root command
 
-	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newBuildCmd())
 	rootCmd.AddCommand(newSessionCmd())
 	rootCmd.AddCommand(newPortCmd())

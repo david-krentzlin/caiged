@@ -7,22 +7,7 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
 )
-
-func newRunCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "run <workdir> [-- <command>]",
-		Short: "Run a spin and connect to OpenCode server",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCommand(args, runOpts, false)
-		},
-	}
-	addRunFlags(cmd, &runOpts)
-	return cmd
-}
 
 func runCommand(args []string, opts RunOptions, isAttach bool) error {
 	workdir := args[0]

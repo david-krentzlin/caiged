@@ -26,7 +26,8 @@ func addCommonFlags(cmd *cobra.Command) {
 }
 
 func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
-	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
+	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
@@ -40,7 +41,8 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 }
 
 func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
-	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
+	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
@@ -53,7 +55,8 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 }
 
 func addBuildFlags(cmd *cobra.Command, opts *RunOptions) {
-	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
+	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 }
 
