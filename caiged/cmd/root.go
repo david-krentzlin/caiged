@@ -19,7 +19,6 @@ Without a subcommand, caiged will:
 
 Examples:
   caiged . --spin qa          # Run/attach to qa spin in current directory
-  caiged . --spin dev         # Run/attach to dev spin
   caiged connect <project>    # Connect to a project by name (from any directory)
   caiged build --spin qa      # Build Docker images for qa spin
   caiged session list         # List all containers`,
