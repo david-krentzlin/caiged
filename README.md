@@ -8,8 +8,7 @@ Caiged lets you launch coding agents (like OpenCode) inside Docker containers wi
 - **OpenCode server mode**: each container runs an OpenCode server, connect from host with TUI client
 
 ```bash
-caiged              # Smart attach/create in current directory
-caiged --spin dev   # Use dev spin instead of default (qa)
+caiged . --spin dev             # Smart attach/create in current directory
 ```
 
 This creates (or attaches to) a container with OpenCode server running, automatically connecting you to the TUI.
@@ -52,27 +51,6 @@ That's it! The CLI will:
 2. Start the OpenCode server inside
 3. Connect you to the OpenCode TUI
 
-You'll see styled output showing:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🚀 CONTAINER STARTED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Project: qa-myproject
-  Container: caiged-qa-myproject
-  Server: http://localhost:4096
-  Password: 0e6b8e70cce337aa57ed64431a950bfda9576873f50f11bcdd4129c4206b7b1f
-
-  Reconnect:
-    caiged connect qa-myproject
-
-  Manual Attach:
-    opencode attach http://localhost:4096 --dir /workspace --password ...
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-If the container already exists, you'll see "🔗 ATTACHING TO EXISTING CONTAINER" instead.
-
 Inside the container:
 - OpenCode server runs with password authentication
 - Password is automatically generated (deterministic from container name + salt)
@@ -84,8 +62,7 @@ Inside the container:
 
 **Default - just run it:**
 ```bash
-caiged              # Current directory, qa spin (default)
-caiged --spin dev   # Current directory, dev spin
+caiged . --spin dev   # Current directory, dev spin
 ```
 
 **Explicit workdir:**
@@ -96,11 +73,6 @@ caiged /path/to/project --spin qa
 **Connect to an existing container by project name:**
 ```bash
 caiged connect qa-myproject
-```
-
-**Show connection information:**
-```bash
-caiged port qa-myproject
 ```
 
 **List all containers with easy-to-copy commands:**
@@ -182,7 +154,6 @@ The build process automatically handles new spins - just create a directory unde
 
 ```bash
 caiged build . --spin <name>
-caiged run . --spin <name>
 ```
 
 See [SPINS.md](SPINS.md) for detailed instructions on creating and contributing spins
@@ -228,84 +199,7 @@ Secret environment variables:
 
 ## CLI Reference
 
-Run `caiged --help` or `caiged <subcommand> --help` for full options.
-
-### Command Terminology
-
-Commands use three distinct parameter types:
-
-#### `<workdir>` - Directory Path
-Used when the command needs to mount or access the actual directory:
-- `caiged run <workdir>` - Mounts workdir into container
-- `caiged build <workdir>` - Needs directory for build context
-- `caiged session restart <workdir>` - Recreates container with workdir
-- `caiged session reset-session <workdir>` - Resets session for workdir
-
-#### `<project-name>` - Project Identifier
-Used when the command only needs to find an existing container by project name:
-- `caiged port <project-name>` - Shows connection info
-- `caiged connect <project-name>` - Connects OpenCode TUI to server
-
-Examples: `my-app`, `code-myproject`, `user-repo`
-
-#### `<session-or-workdir>` - Flexible
-- `caiged session attach <session-or-workdir>` - Can take either session name or workdir
-
-### Main Commands
-
-**Container lifecycle:**
-- `caiged run <workdir>`: start a spin and attach to tmux session
-- `caiged build <workdir>`: build images without running
-- `caiged session restart <workdir>`: restart container and tmux
-
-**Connecting to servers:**
-- `caiged connect <project-name>`: launch OpenCode TUI connected to server
-- `caiged port <project-name>`: show connection info (port, password, URL)
-
-**Session management:**
-- `caiged session attach <name>`: attach to existing tmux session
-- `caiged session list`: show all active sessions and containers
-- `caiged session reset-session <workdir>`: reset tmux windows only
-- `caiged session stop-all`: stop all caiged containers and sessions
-
-**Key flags:**
-- `--spin <name>`: which spin to use (default: qa)
-- `--project <name>`: override container/session name
-- `--repo <path>`: caiged repo location (auto-detected when installed)
-- `--rebuild-images`: rebuild images even if they exist
-- `--no-attach`: start container without attaching to tmux
-
----
-
-## Debugging
-
-### Attach to OpenCode Server Session
-
-The OpenCode server runs inside a tmux session within the container for easy debugging:
-
-```bash
-docker exec -it caiged-qa-myproject tmux attach -t opencode-server
-```
-
-This lets you see server logs, errors, and restart the server if needed.
-
-### View Server Logs
-
-```bash
-docker exec caiged-qa-myproject tmux capture-pane -t opencode-server -p
-```
-
-### Manually Connect to Server
-
-If tmux isn't working, you can connect directly:
-
-```bash
-# Get connection info
-caiged port myproject
-
-# Connect manually
-opencode attach http://localhost:4096 --dir /workspace --password <password>
-```
+Just invoke `man caiged` after you've installed it.
 
 ---
 
@@ -325,16 +219,3 @@ When installed via `make install`, the CLI is compiled with the repo path embedd
 
 ---
 
-## What's missing
-
-- Transferring environment variables into the container to include configuration (for example the jfrog oidc setup)
-
-## Contributing
-
-Caiged is designed to be extensible. To add a new spin:
-
-1. Create `spins/<name>/` with `AGENTS.md`, `skills/`, `mcp/`, `README.md`
-2. Build and test: `caiged build . --spin <name>`
-3. Run: `caiged run . --spin <name>`
-
-Contributions welcome!
