@@ -7,5 +7,9 @@ if command -v bunx >/dev/null 2>&1; then
 	exec bunx "opencode-ai@${OPENCODE_VERSION}"
 fi
 
-echo "bunx is not available. Ensure bun is installed via config/target_mise.toml."
+if command -v bun >/dev/null 2>&1; then
+	exec bun x "opencode-ai@${OPENCODE_VERSION}"
+fi
+
+echo "bun is not available. Ensure bun is installed via config/target_mise.toml."
 exec "${SHELL:-/bin/zsh}"

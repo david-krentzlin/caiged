@@ -1,0 +1,54 @@
+package cmd
+
+import "github.com/spf13/cobra"
+
+type RunOptions struct {
+	Spin              string
+	Project           string
+	Repo              string
+	EnableNetwork     bool
+	DisableNetwork    bool
+	DisableDockerSock bool
+	MountGH           bool
+	MountGHRW         bool
+	NoMountGH         bool
+	ForceBuild        bool
+	DetachOnly        bool
+}
+
+var runOpts = RunOptions{}
+
+func addCommonFlags(cmd *cobra.Command) {
+	cmd.SilenceUsage = true
+}
+
+func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
+	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
+	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+	cmd.Flags().BoolVar(&opts.EnableNetwork, "enable-network", true, "Enable network access")
+	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
+	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
+	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
+	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
+	cmd.Flags().BoolVar(&opts.ForceBuild, "force-build", false, "Rebuild base and spin images")
+	cmd.Flags().BoolVar(&opts.DetachOnly, "no-attach", false, "Start container without attaching")
+}
+
+func normalizeOptions(opts RunOptions) RunOptions {
+	if opts.DisableNetwork {
+		opts.EnableNetwork = false
+	}
+	if opts.NoMountGH {
+		opts.MountGH = false
+		opts.MountGHRW = false
+	}
+	if opts.MountGHRW {
+		opts.MountGH = true
+	}
+	if !opts.MountGH {
+		opts.MountGHRW = false
+	}
+	return opts
+}

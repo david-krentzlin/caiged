@@ -15,5 +15,5 @@ In-container helpers:
 - `,auth-tools` to authenticate gh and 1password
 
 Notes:
-- Network is disabled by default unless `--enable-network` is used
+- Network is enabled by default unless `--disable-network` is used
 - Docker socket is enabled by default unless `--disable-docker-sock` is used

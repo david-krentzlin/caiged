@@ -1,3 +1,4 @@
+export PATH="/opt/mise/shims:/root/.bun/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 export STARSHIP_CONFIG=/etc/starship.toml
 
 if command -v mise >/dev/null 2>&1; then

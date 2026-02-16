@@ -1,12 +1,13 @@
 # Caiged Spins
 
-Run isolated, tool-rich agent containers with explicit host mounts and purpose-built spins.
-
-Most common use-case (QA spin on the current repo):
+Run your coding agent in a dockerized environment tailored to a specific role.
 
 ```bash
-./scripts/caiged "$(pwd)" --task qa
+caiged "$(pwd)" --spin qa
 ```
+
+This will spin up a docker container preconfigured for the QA agent.
+Then it will create or attach to a tmux session that connects into that container.
 
 Container naming:
 - Name format: `caiged-<spin>-<project>`
@@ -26,67 +27,110 @@ Tools are installed via `mise` with pinned versions in `config/target_mise.toml`
 
 ## Build
 
-Build is handled by the `caiged` wrapper, which only rebuilds if images are missing or `--force-build` is set.
+Build is handled by the `caiged` CLI, which only rebuilds if images are missing or `--force-build` is set.
+
+Build images explicitly:
+
+```bash
+caiged build "$(pwd)" --spin qa
+```
+
+When installed via `make install`, the CLI is compiled with the repo path it was built from. If the repo is moved or deleted, `caiged` will error and ask you to set `--repo` or `CAIGED_REPO`.
+
+Primary subcommands:
+- `run`: start a spin (builds images if needed) and attach via host tmux when available
+- `build`: build the base and spin images without running a container
+- `session`: manage host tmux sessions and related containers (attach/list/restart/reset/stop-all)
 
 ## Run examples
 
 QA spin with network disabled (default):
 
 ```bash
-./scripts/caiged /path/to/workdir --task qa
+caiged /path/to/workdir --spin qa
 ```
 
-By default, `caiged` starts the container detached and then opens a host tmux session (if available) with a shell attached to the container. Use `--detach` to skip attaching.
+By default, `caiged` starts the container detached and then opens a host tmux session (if available) with a shell attached to the container. Use `--no-attach` to skip attaching.
+Network is enabled by default. Use `--disable-network` to turn it off.
 
 Host tmux sessions:
 - Session name: `caiged-<spin>-<project>`
 - If already inside tmux, it switches to the session
+
+Session windows:
+- `help`
+- `opencode`
+- `shell`
+
+If you run `caiged` from outside the caiged repo, set the repo path:
+
+```bash
+caiged run . --spin qa --repo /path/to/caiged
+```
 
 Inside the container:
 - `,help` for environment info
 - `,auth-tools` to authenticate gh and 1password
 - gh config is mounted from the host when available (read-only by default)
 
-Enable network:
+Disable network:
 
 ```bash
-./scripts/caiged /path/to/workdir --task qa --enable-network
+caiged /path/to/workdir --spin qa --disable-network
 ```
 
 Docker socket is enabled by default. To disable it:
 
 ```bash
-./scripts/caiged /path/to/workdir --task qa --disable-docker-sock
+caiged /path/to/workdir --spin qa --disable-docker-sock
 ```
 
-Run detached (container keeps running):
+Run without attaching (container keeps running):
 
 ```bash
-./scripts/caiged "$(pwd)" --task qa --detach
+caiged "$(pwd)" --spin qa --no-attach
 ```
 
-Attach to container shell (host tmux session if available):
+Attach to a host tmux session (or container shell fallback):
 
 ```bash
-./scripts/caiged "$(pwd)" --task qa --attach
+caiged session attach caiged-qa-<project>
 ```
 
 List active caiged containers and tmux sessions:
 
 ```bash
-./scripts/caiged --list
+caiged session list
+```
+
+Restart container and reset tmux session:
+
+```bash
+caiged session restart "$(pwd)" --spin qa
+```
+
+Reset tmux session only:
+
+```bash
+caiged session reset-session "$(pwd)" --spin qa
+```
+
+Stop all caiged containers and tmux sessions:
+
+```bash
+caiged session stop-all
 ```
 
 Mount host gh config read-write:
 
 ```bash
-./scripts/caiged "$(pwd)" --task qa --mount-gh-rw
+caiged "$(pwd)" --spin qa --mount-gh-rw
 ```
 
 Force rebuild:
 
 ```bash
-OPENCODE_VERSION=latest ./scripts/caiged /path/to/workdir --task qa --force-build
+OPENCODE_VERSION=latest caiged /path/to/workdir --spin qa --force-build
 ```
 
 

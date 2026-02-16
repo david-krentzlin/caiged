@@ -1,5 +1,9 @@
 add_newline = false
-format = "$directory$git_branch$git_status$character"
+format = "$env_var$directory$git_branch$git_status$character"
+
+[env_var.CAIGED_WINDOW]
+format = " [$env_value]($style)"
+style = "bold yellow"
 
 [directory]
 style = "cyan"
