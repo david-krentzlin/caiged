@@ -146,7 +146,9 @@ OpenCode is installed via `bun add -g opencode-ai` (default `OPENCODE_VERSION=la
 
 ### Security Defaults
 
-- **Network**: enabled by default (required for opencode); disable with `--disable-network`
+- **Network**: uses host networking (`--network=host`) by default for OAuth callback support; disable with `--disable-network`
+  - Host networking allows OAuth flows (like OpenCode authentication) to work properly
+  - With `--disable-network`, container uses `--network=none` for full isolation
 - **Docker socket**: mounted by default; disable with `--disable-docker-sock`
 - **GitHub config**: mounted read-only from `~/.config/gh`; make read-write with `--mount-gh-rw`
 

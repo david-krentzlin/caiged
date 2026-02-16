@@ -121,6 +121,8 @@ func startContainerDetached(cfg Config) error {
 	args := []string{"run", "-d", "--rm", "--name", cfg.ContainerName, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs)}
 	if !cfg.EnableNetwork {
 		args = append(args, "--network=none")
+	} else {
+		args = append(args, "--network=host")
 	}
 	if !cfg.DisableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
@@ -141,6 +143,8 @@ func runContainerCommand(cfg Config, command []string) error {
 	args := []string{"run", "--rm", "-it", "--name", cfg.ContainerName, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs)}
 	if !cfg.EnableNetwork {
 		args = append(args, "--network=none")
+	} else {
+		args = append(args, "--network=host")
 	}
 	if !cfg.DisableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
