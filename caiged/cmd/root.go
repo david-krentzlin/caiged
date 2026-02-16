@@ -8,9 +8,29 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "caiged [command] [flags]",
+	Use:   "caiged [workdir] [flags]",
 	Short: "Run isolated OpenCode agent spins in Docker",
-	RunE:  func(cmd *cobra.Command, args []string) error { return cmd.Help() },
+	Long: `caiged - Run isolated OpenCode agent spins in Docker
+
+Without a subcommand, caiged will:
+  - Attach to an existing container for this project/spin if one exists
+  - Create a new container and attach if none exists
+
+Examples:
+  caiged .                    # Run/attach to default spin (qa) in current directory
+  caiged . --spin dev         # Run/attach to dev spin
+  caiged connect <project>    # Connect to a project by name (from any directory)
+  caiged build                # Build Docker images
+  caiged session list         # List all containers`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// If no args provided, default to current directory
+		if len(args) == 0 {
+			args = []string{"."}
+		}
+		// Default behavior: run (which will attach if exists, or create if not)
+		return runCommand(args, runOpts, false)
+	},
 }
 
 func Execute() {
@@ -26,6 +46,7 @@ func Execute() {
 
 func init() {
 	addCommonFlags(rootCmd)
+	addRunFlags(rootCmd, &runOpts) // Add run flags to root command
 
 	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newBuildCmd())

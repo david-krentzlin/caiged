@@ -40,22 +40,31 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 		return runContainerCommand(config, commandArgs)
 	}
 
+	// Check if container is already running
+	alreadyRunning := containerRunning(config)
+
 	if err := startContainerDetached(config); err != nil {
 		return err
 	}
 
 	// Display connection information
 	fmt.Println()
-	fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-	fmt.Println(SectionDivider.Render("  🚀 CONTAINER STARTED"))
-	fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	if alreadyRunning {
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+		fmt.Println(SectionDivider.Render("  🔗 ATTACHING TO EXISTING CONTAINER"))
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	} else {
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+		fmt.Println(SectionDivider.Render("  🚀 CONTAINER STARTED"))
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	}
 	fmt.Println()
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(config.Project))
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Container:"), ContainerStyle.Render(config.ContainerName))
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%d", config.OpencodePort)))
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(config.OpencodePassword))
 	fmt.Println()
-	fmt.Printf("  %s\n", HeaderStyle.Render("Quick Connect:"))
+	fmt.Printf("  %s\n", HeaderStyle.Render("Reconnect:"))
 	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("caiged connect %s", config.Project)))
 	fmt.Println()
 	fmt.Printf("  %s\n", HeaderStyle.Render("Manual Attach:"))

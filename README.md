@@ -5,13 +5,14 @@
 Caiged lets you launch coding agents (like OpenCode) inside Docker containers with:
 - **Security-first design**: explicit bind mounts, minimal host access
 - **Role-specific "spins"**: preconfigured agent personas (QA, engineer, reviewer) with tailored instructions, skills, and tools
-- **OpenCode server mode**: each container runs an OpenCode server, connect from host with TUI or via tmux
+- **OpenCode server mode**: each container runs an OpenCode server, connect from host with TUI client
 
 ```bash
-caiged run /path/to/project --spin qa
+caiged              # Smart attach/create in current directory
+caiged --spin dev   # Use dev spin instead of default (qa)
 ```
 
-This spins up a QA-focused container with OpenCode server running, ready to connect.
+This creates (or attaches to) a container with OpenCode server running, automatically connecting you to the TUI.
 
 ---
 
@@ -22,6 +23,8 @@ This spins up a QA-focused container with OpenCode server running, ready to conn
 **Consistency**: Every team member gets the same tooling (gh, git, mise, bun, opencode) with pinned versions.
 
 **Role-specific context**: QA agents get QA skills and instructions, reviewers get review workflows—no mixing concerns.
+
+**Simple workflow**: One command to create or attach - `caiged` just works.
 
 ---
 
@@ -41,26 +44,37 @@ This builds the CLI and copies it to `~/.local/bin/caiged`.
 
 ```bash
 cd /path/to/your/project
-caiged run . --spin qa
+caiged
 ```
 
-You'll see connection information displayed:
-```
-Container: caiged-qa-myproject
-OpenCode server: http://localhost:4096
-Password: 0e6b8e70cce337aa57ed64431a950bfda9576873f50f11bcdd4129c4206b7b1f
+That's it! The CLI will:
+1. Create a container if none exists (or attach to existing)
+2. Start the OpenCode server inside
+3. Connect you to the OpenCode TUI
 
-To attach manually:
-  opencode attach http://localhost:4096 --dir /workspace --password 0e6b8e70cce337aa57ed64431a950bfda9576873f50f11bcdd4129c4206b7b1f
+You'll see styled output showing:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🚀 CONTAINER STARTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Project: qa-myproject
+  Container: caiged-qa-myproject
+  Server: http://localhost:4096
+  Password: 0e6b8e70cce337aa57ed64431a950bfda9576873f50f11bcdd4129c4206b7b1f
+
+  Reconnect:
+    caiged connect qa-myproject
+
+  Manual Attach:
+    opencode attach http://localhost:4096 --dir /workspace --password ...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Then you'll be attached to a tmux session with:
-- **help window**: type `,help` for environment info
-- **opencode window**: OpenCode TUI connected to the server
-- **shell window**: standard shell for manual commands
+If the container already exists, you'll see "🔗 ATTACHING TO EXISTING CONTAINER" instead.
 
 Inside the container:
-- OpenCode server runs inside a tmux session for easy debugging
+- OpenCode server runs with password authentication
 - Password is automatically generated (deterministic from container name + salt)
 - OpenCode auth is reused automatically from host `~/.local/share/opencode/auth.json` when present
 - If host OpenCode auth is missing, run OpenCode auth once inside the container (`/connect` in the OpenCode TUI)
@@ -68,27 +82,28 @@ Inside the container:
 
 ### Common Workflows
 
-**Start a QA review session:**
+**Default - just run it:**
 ```bash
-caiged run /path/to/project --spin qa
+caiged              # Current directory, qa spin (default)
+caiged --spin dev   # Current directory, dev spin
 ```
 
-**Connect to an existing server with TUI:**
+**Explicit workdir:**
 ```bash
-caiged connect myproject
+caiged /path/to/project --spin qa
+```
+
+**Connect to an existing container by project name:**
+```bash
+caiged connect qa-myproject
 ```
 
 **Show connection information:**
 ```bash
-caiged port myproject
+caiged port qa-myproject
 ```
 
-**Attach to an existing session:**
-```bash
-caiged session attach caiged-qa-myproject
-```
-
-**List all running sessions:**
+**List all containers with easy-to-copy commands:**
 ```bash
 caiged session list
 ```
@@ -100,7 +115,7 @@ caiged session stop-all
 
 **Force rebuild with latest tools:**
 ```bash
-OPENCODE_VERSION=latest caiged run "$(pwd)" --spin qa --rebuild-images
+OPENCODE_VERSION=latest caiged --rebuild-images
 ```
 
 **Pass selected host secrets into the container:**
@@ -108,9 +123,7 @@ OPENCODE_VERSION=latest caiged run "$(pwd)" --spin qa --rebuild-images
 export JFROG_OIDC_USER=...
 export JFROG_OIDC_TOKEN=...
 
-caiged run . --spin qa \
-  --secret-env JFROG_OIDC_USER \
-  --secret-env JFROG_OIDC_TOKEN
+caiged --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 ```
 
 ---
@@ -121,32 +134,26 @@ caiged run . --spin qa \
 flowchart TB
   subgraph Host[Host Machine]
     CLI[caiged CLI]
-    TMUX["tmux (host)<br/>windows: help / opencode TUI / shell"]
     TUI["OpenCode TUI<br/>(connects to server)"]
     TERM[your terminal]
-    CLI -->|creates session| TMUX
-    TMUX -->|runs| TUI
-    TMUX -->|attach/switch| TERM
+    CLI -->|launches| TUI
   end
 
   subgraph Container[Container]
     SERVER["OpenCode Server<br/>(in tmux session)<br/>- password protected<br/>- port mapped to host"]
-    IMG["spin image (qa/...)<br/>- tools via mise<br/>- opencode config<br/>- scripts: ,help, auth"]
+    IMG["spin image (qa/dev/...)<br/>- tools via mise<br/>- opencode config<br/>- agent instructions"]
     SERVER -->|loads config from| IMG
   end
 
   CLI -->|docker run| IMG
   TUI -->|http://localhost:PORT| SERVER
-  TMUX -->|docker exec| IMG
 ```
 
 1. **CLI** (`caiged`) builds the base image + spin image (if needed)
 2. **Container** starts with your project directory bind-mounted
-3. **OpenCode server** runs inside container tmux session with password authentication
-4. **Host tmux** creates a session with three windows:
-   - `opencode attach` connects to the server via HTTP
-   - Shell windows run `docker exec` into the container
-5. You attach to the tmux session and work with the OpenCode TUI
+3. **OpenCode server** runs inside container with password authentication
+4. **OpenCode TUI** connects to the server via HTTP from host
+5. You work with the OpenCode TUI connected to the isolated agent
 
 **Container naming**: `caiged-<spin>-<project>`
 - Default project name: last two path segments of your working directory
