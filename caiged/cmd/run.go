@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -258,6 +258,7 @@ func connectToOpenCode(cfg Config) error {
 
 	lastSessionID := getLastSessionID(cfg)
 	if lastSessionID != "" {
+		fmt.Printf("%s\n", InfoStyle.Render(fmt.Sprintf("📋 Resuming session: %s", lastSessionID)))
 		connectArgs = append(connectArgs, "--session", lastSessionID)
 	}
 
@@ -265,32 +266,27 @@ func connectToOpenCode(cfg Config) error {
 }
 
 func getLastSessionID(cfg Config) string {
-	// Query the container for the most recent session
-	// We run: docker exec <container> opencode session list --format json -n 1
+	// Get the most recent session file from the container's storage directory
+	// Sessions are stored as files in /root/.local/share/opencode/storage/session_diff/
+	// with filenames like ses_<id>.json
 	output, err := runCapture("docker", []string{
 		"exec", cfg.ContainerName,
-		"opencode", "session", "list", "--format", "json", "-n", "1",
+		"sh", "-c",
+		"ls -t /root/.local/share/opencode/storage/session_diff/ses_*.json 2>/dev/null | head -n1",
 	}, ExecOptions{})
 
-	if err != nil {
+	if err != nil || output == "" {
 		return ""
 	}
 
-	// Parse the JSON output to get the session ID
-	// The output should be a JSON array with session objects
-	var sessions []map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &sessions); err != nil {
+	// Extract session ID from filename
+	// Path format: /root/.local/share/opencode/storage/session_diff/ses_<id>.json
+	filename := filepath.Base(strings.TrimSpace(output))
+	if !strings.HasPrefix(filename, "ses_") || !strings.HasSuffix(filename, ".json") {
 		return ""
 	}
 
-	if len(sessions) == 0 {
-		return ""
-	}
-
-	// Get the ID from the first (most recent) session
-	if id, ok := sessions[0]["id"].(string); ok {
-		return id
-	}
-
-	return ""
+	// Remove "ses_" prefix and ".json" suffix to get the session ID
+	sessionID := strings.TrimSuffix(strings.TrimPrefix(filename, "ses_"), ".json")
+	return "ses_" + sessionID
 }
