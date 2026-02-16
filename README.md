@@ -84,18 +84,18 @@ OPENCODE_VERSION=latest caiged "$(pwd)" --spin qa --force-build
 flowchart TB
   subgraph Host[Host Machine]
     CLI[caiged CLI]
-    TMUX[tmux (host)\nwindows: help / opencode / shell]
+    TMUX["tmux (host)<br/>windows: help / opencode / shell"]
     TERM[your terminal]
     CLI -->|creates session| TMUX
     TMUX -->|attach/switch| TERM
   end
 
   subgraph Container[Container]
-    IMG[spin image (qa/...)\n- tools via mise\n- opencode config\n- scripts: ,help, auth]
+    IMG["spin image (qa/...)<br/>- tools via mise<br/>- opencode config<br/>- scripts: ,help, auth"]
   end
 
   CLI -->|docker run| IMG
-  TMUX -->|docker exec (help/opencode/shell)| IMG
+  TMUX -->|docker exec| IMG
 ```
 
 1. **CLI** (`caiged`) builds the base image + spin image (if needed)
