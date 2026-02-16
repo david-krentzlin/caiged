@@ -14,8 +14,12 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	// Silence cobra's built-in error printing, we'll style our own
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
+
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "\n%s %s\n\n", ErrorStyle.Render("✗ Error:"), err.Error())
 		os.Exit(1)
 	}
 }

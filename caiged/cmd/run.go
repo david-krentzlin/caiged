@@ -45,18 +45,23 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 	}
 
 	// Display connection information
-	fmt.Printf("\n")
-	fmt.Printf("Project name: %s\n", config.Project)
-	fmt.Printf("Container: %s\n", config.ContainerName)
-	fmt.Printf("OpenCode server: http://localhost:%d\n", config.OpencodePort)
-	fmt.Printf("Password: %s\n", config.OpencodePassword)
-	fmt.Printf("\n")
-	fmt.Printf("To connect:\n")
-	fmt.Printf("  caiged connect %s\n", config.Project)
-	fmt.Printf("\n")
-	fmt.Printf("Or attach manually:\n")
-	fmt.Printf("  opencode attach http://localhost:%d --dir /workspace --password %s\n", config.OpencodePort, config.OpencodePassword)
-	fmt.Printf("\n")
+	fmt.Println()
+	fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	fmt.Println(SectionDivider.Render("  🚀 CONTAINER STARTED"))
+	fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	fmt.Println()
+	fmt.Printf("  %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(config.Project))
+	fmt.Printf("  %s %s\n", LabelStyle.Render("Container:"), ContainerStyle.Render(config.ContainerName))
+	fmt.Printf("  %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%d", config.OpencodePort)))
+	fmt.Printf("  %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(config.OpencodePassword))
+	fmt.Println()
+	fmt.Printf("  %s\n", HeaderStyle.Render("Quick Connect:"))
+	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("caiged connect %s", config.Project)))
+	fmt.Println()
+	fmt.Printf("  %s\n", HeaderStyle.Render("Manual Attach:"))
+	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", config.OpencodePort, config.OpencodePassword)))
+	fmt.Println(DividerStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	fmt.Println()
 
 	if opts.DetachOnly && !isAttach {
 		return nil
@@ -209,7 +214,7 @@ func runContainerCommand(cfg Config, command []string) error {
 
 func connectToOpenCode(cfg Config) error {
 	// Wait for the OpenCode server to be ready
-	fmt.Printf("Waiting for OpenCode server to start")
+	fmt.Printf("%s", InfoStyle.Render("⏳ Waiting for OpenCode server to start"))
 	maxWait := 60 * time.Second
 	checkInterval := 500 * time.Millisecond
 	deadline := time.Now().Add(maxWait)
@@ -229,21 +234,21 @@ func connectToOpenCode(cfg Config) error {
 		// Debug: print what we got every 10 attempts
 		if attempts%10 == 0 {
 			fmt.Printf("\n[debug attempt %d] resp=%v err=%v\n", attempts, resp != nil, err)
-			fmt.Printf("Waiting for OpenCode server to start")
+			fmt.Printf("%s", InfoStyle.Render("⏳ Waiting for OpenCode server to start"))
 		}
 
 		// If we got a response object, the server is responding (even if it's an error like 401)
 		if resp != nil {
 			resp.Body.Close()
 			serverReady = true
-			fmt.Printf(" ready!\n")
+			fmt.Printf(" %s\n", SuccessStyle.Render("✓ ready!"))
 			break
 		}
 
 		// If there's no error and no response, something is very wrong, but let's treat it as ready
 		if err == nil {
 			serverReady = true
-			fmt.Printf(" ready!\n")
+			fmt.Printf(" %s\n", SuccessStyle.Render("✓ ready!"))
 			break
 		}
 

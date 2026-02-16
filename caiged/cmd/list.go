@@ -4,18 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
-)
-
-var (
-	headerStyle    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
-	projectStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("14"))
-	labelStyle     = lipgloss.NewStyle().Bold(true)
-	runningStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
-	stoppedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
-	dividerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	sectionDivider = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true)
 )
 
 func newListCmd() *cobra.Command {
@@ -33,9 +22,9 @@ func newListCmd() *cobra.Command {
 			if len(runningLines) == 0 {
 				fmt.Println("Running containers: none")
 			} else {
-				fmt.Println(sectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-				fmt.Println(sectionDivider.Render("  RUNNING CONTAINERS"))
-				fmt.Println(sectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+				fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+				fmt.Println(SectionDivider.Render("  RUNNING CONTAINERS"))
+				fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 				for _, line := range runningLines {
 					parts := strings.Split(line, "\t")
 					if len(parts) < 2 {
@@ -48,13 +37,13 @@ func newListCmd() *cobra.Command {
 					projectName := strings.TrimPrefix(containerName, prefix+"-")
 
 					fmt.Println()
-					fmt.Printf("  📦 %s %s\n", labelStyle.Render("Project:"), projectStyle.Render(projectName))
+					fmt.Printf("  📦 %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(projectName))
 					fmt.Printf("     Container: %s\n", containerName)
-					fmt.Printf("     %s %s\n", labelStyle.Render("Status:"), runningStyle.Render(status))
+					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), RunningStyle.Render(status))
 					fmt.Println()
-					fmt.Printf("     %s  caiged connect %s\n", labelStyle.Render("Connect:"), projectName)
-					fmt.Printf("     %s    docker exec -it %s /bin/zsh\n", labelStyle.Render("Shell:"), containerName)
-					fmt.Println(dividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))
+					fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), projectName)
+					fmt.Printf("     %s    docker exec -it %s /bin/zsh\n", LabelStyle.Render("Shell:"), containerName)
+					fmt.Println(DividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))
 				}
 				fmt.Println()
 			}
@@ -67,9 +56,9 @@ func newListCmd() *cobra.Command {
 			if len(allLines) == 0 {
 				fmt.Println("All containers: none")
 			} else {
-				fmt.Println(sectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-				fmt.Println(sectionDivider.Render("  ALL CONTAINERS"))
-				fmt.Println(sectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+				fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+				fmt.Println(SectionDivider.Render("  ALL CONTAINERS"))
+				fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 				for _, line := range allLines {
 					parts := strings.Split(line, "\t")
 					if len(parts) < 2 {
@@ -83,23 +72,23 @@ func newListCmd() *cobra.Command {
 
 					// Determine if container is running
 					isRunning := strings.Contains(strings.ToLower(status), "up")
-					statusStyle := runningStyle
+					statusStyle := RunningStyle
 					if !isRunning {
-						statusStyle = stoppedStyle
+						statusStyle = StoppedStyle
 					}
 
 					fmt.Println()
-					fmt.Printf("  📦 %s %s\n", labelStyle.Render("Project:"), projectStyle.Render(projectName))
+					fmt.Printf("  📦 %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(projectName))
 					fmt.Printf("     Container: %s\n", containerName)
-					fmt.Printf("     %s %s\n", labelStyle.Render("Status:"), statusStyle.Render(status))
+					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), statusStyle.Render(status))
 					fmt.Println()
 
 					// Only show connect command for running containers
 					if isRunning {
-						fmt.Printf("     %s  caiged connect %s\n", labelStyle.Render("Connect:"), projectName)
+						fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), projectName)
 					}
-					fmt.Printf("     %s   docker rm -f %s\n", labelStyle.Render("Remove:"), containerName)
-					fmt.Println(dividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))
+					fmt.Printf("     %s   docker rm -f %s\n", LabelStyle.Render("Remove:"), containerName)
+					fmt.Println(DividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))
 				}
 				fmt.Println()
 			}
