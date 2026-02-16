@@ -210,6 +210,10 @@ When installed via `make install`, the CLI is compiled with the repo path embedd
 
 ---
 
+## What's missing
+
+- Transferring environment variables into the container to include configuration (for example the jfrog oidc setup)
+
 ## Contributing
 
 Caiged is designed to be extensible. To add a new spin:
