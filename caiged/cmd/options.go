@@ -38,7 +38,7 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
 	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
 	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
-	cmd.Flags().BoolVar(&opts.ForceBuild, "force-build", false, "Rebuild base and spin images")
+	addRebuildImagesFlag(cmd, opts)
 	cmd.Flags().BoolVar(&opts.DetachOnly, "no-attach", false, "Start container without attaching")
 }
 
@@ -55,12 +55,19 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
 	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
 	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
-	cmd.Flags().BoolVar(&opts.ForceBuild, "force-build", false, "Rebuild base and spin images")
+	addRebuildImagesFlag(cmd, opts)
 }
 
 func addBuildFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "qa", "Spin name")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+}
+
+func addRebuildImagesFlag(cmd *cobra.Command, opts *RunOptions) {
+	cmd.Flags().BoolVar(&opts.ForceBuild, "rebuild-images", false, "Rebuild base and spin images")
+	cmd.Flags().BoolVar(&opts.ForceBuild, "force-build", false, "Deprecated: use --rebuild-images")
+	_ = cmd.Flags().MarkHidden("force-build")
+	_ = cmd.Flags().MarkDeprecated("force-build", "use --rebuild-images")
 }
 
 func normalizeOptions(opts RunOptions) RunOptions {

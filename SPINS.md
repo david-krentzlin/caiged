@@ -175,7 +175,7 @@ Edit `spins/<spin-name>/README.md` with:
 
 **No code changes required!** The build process automatically handles new spins:
 
-1. **CLI discovers spin**: When you run `caiged --spin <name>`, the CLI checks for `spins/<name>/`
+1. **CLI discovers spin**: When you run `caiged run ... --spin <name>` (or `caiged build ... --spin <name>`), the CLI checks for `spins/<name>/`
 2. **Docker builds**: `Dockerfile` uses `ARG SPIN` and `COPY spins/${SPIN}/` to copy files
 3. **Container setup**: `entrypoint.sh` copies spin assets to `/root/.config/opencode/`:
    - `AGENTS.md` → `/root/.config/opencode/AGENTS.md`
@@ -189,7 +189,7 @@ Edit `spins/<spin-name>/README.md` with:
 caiged build . --spin <spin-name>
 
 # Run the spin
-caiged . --spin <spin-name>
+caiged run . --spin <spin-name>
 ```
 
 ### Example: Adding an "engineer" Spin
@@ -229,7 +229,7 @@ EOF
 
 # Build and run
 caiged build . --spin engineer
-caiged . --spin engineer
+caiged run . --spin engineer
 ```
 
 ## Spin Design Guidelines
@@ -256,7 +256,7 @@ caiged . --spin engineer
 Edit files in `spins/<name>/`, then rebuild:
 
 ```bash
-caiged build . --spin <name> --force-build
+caiged build . --spin <name>
 ```
 
 ### Removing a Spin

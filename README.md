@@ -8,7 +8,7 @@ Caiged lets you launch coding agents (like OpenCode) inside Docker containers wi
 - **Host tmux integration**: seamless multi-window workflow (help, opencode, shell) orchestrated from your terminal
 
 ```bash
-caiged /path/to/project --spin qa
+caiged run /path/to/project --spin qa
 ```
 
 This spins up a QA-focused container and attaches you to a tmux session with three windows ready to go.
@@ -41,10 +41,8 @@ This builds the CLI and copies it to `~/.local/bin/caiged`.
 
 ```bash
 cd /path/to/your/project
-caiged . --spin qa
+caiged run . --spin qa
 ```
-
-Equivalent explicit form: `caiged run . --spin qa`.
 
 You'll see a tmux session with:
 - **help window**: type `,help` for environment info
@@ -60,7 +58,7 @@ Inside the container:
 
 **Start a QA review session:**
 ```bash
-caiged /path/to/project --spin qa
+caiged run /path/to/project --spin qa
 ```
 
 **Attach to an existing session:**
@@ -80,7 +78,7 @@ caiged session stop-all
 
 **Force rebuild with latest tools:**
 ```bash
-OPENCODE_VERSION=latest caiged "$(pwd)" --spin qa --force-build
+OPENCODE_VERSION=latest caiged run "$(pwd)" --spin qa --rebuild-images
 ```
 
 **Pass selected host secrets into the container:**
@@ -88,7 +86,7 @@ OPENCODE_VERSION=latest caiged "$(pwd)" --spin qa --force-build
 export JFROG_OIDC_USER=...
 export JFROG_OIDC_TOKEN=...
 
-caiged . --spin qa \
+caiged run . --spin qa \
   --secret-env JFROG_OIDC_USER \
   --secret-env JFROG_OIDC_TOKEN
 ```
@@ -144,7 +142,7 @@ The build process automatically handles new spins - just create a directory unde
 
 ```bash
 caiged build . --spin <name>
-caiged . --spin <name>
+caiged run . --spin <name>
 ```
 
 See [SPINS.md](SPINS.md) for detailed instructions on creating and contributing spins
@@ -205,7 +203,7 @@ Run `caiged --help` or `caiged <subcommand> --help` for full options.
 - `--spin <name>`: which spin to use (required)
 - `--project <name>`: override container/session name
 - `--repo <path>`: caiged repo location (auto-detected when installed)
-- `--force-build`: rebuild images even if they exist
+- `--rebuild-images`: rebuild images even if they exist
 - `--no-attach`: start container without attaching
 
 ---
@@ -236,6 +234,6 @@ Caiged is designed to be extensible. To add a new spin:
 
 1. Create `spins/<name>/` with `AGENTS.md`, `skills/`, `mcp/`, `README.md`
 2. Build and test: `caiged build . --spin <name>`
-3. Run: `caiged . --spin <name>`
+3. Run: `caiged run . --spin <name>`
 
 Contributions welcome!

@@ -28,7 +28,7 @@ func newStopAllCmd() *cobra.Command {
 							}
 						}
 					}
-				} else {
+				} else if !isBenignTmuxNoServerError(err) {
 					errorsList = append(errorsList, fmt.Sprintf("list tmux sessions: %v", err))
 				}
 			}
@@ -55,4 +55,12 @@ func newStopAllCmd() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+func isBenignTmuxNoServerError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "no server running")
 }

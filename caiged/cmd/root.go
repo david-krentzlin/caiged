@@ -8,15 +8,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "caiged [command]",
+	Use:   "caiged [command] [flags]",
 	Short: "Run isolated agent spins in Docker",
-	Args:  cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return cmd.Help()
-		}
-		return runCommand(args, runOpts, false)
-	},
+	RunE:  func(cmd *cobra.Command, args []string) error { return cmd.Help() },
 }
 
 func Execute() {
@@ -28,7 +22,6 @@ func Execute() {
 
 func init() {
 	addCommonFlags(rootCmd)
-	addRunFlags(rootCmd, &runOpts)
 
 	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newBuildCmd())

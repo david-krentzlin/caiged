@@ -17,10 +17,10 @@ fi
 
 FORCE_FLAG=""
 if [ "$FORCE_BUILD" -eq 1 ]; then
-	FORCE_FLAG="--force-build"
+	FORCE_FLAG="--rebuild-images"
 fi
 
-"$CLI_BIN" "$MOUNT_DIR" \
+"$CLI_BIN" run "$MOUNT_DIR" \
 	--spin "$SPIN" \
 	$FORCE_FLAG \
 	-- bash -lc "ls \"${WORKDIR}\" >/dev/null && docker run --rm ${HELLO_IMAGE}"
