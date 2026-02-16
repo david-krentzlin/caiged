@@ -27,6 +27,8 @@ type Config struct {
 	MountGH           bool
 	MountGHRW         bool
 	MountGHPath       string
+	MountOpenCodeAuth bool
+	OpenCodeAuthPath  string
 	ForceBuild        bool
 	Arch              string
 	MiseVersion       string
@@ -85,6 +87,14 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		}
 	}
 
+	opencodeAuthPath := ""
+	if opts.MountOpenCodeAuth {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			opencodeAuthPath = hostOpenCodeAuthPath(homeDir)
+		}
+	}
+
 	config := Config{
 		WorkdirAbs:        workdirAbs,
 		RepoRoot:          repoRoot,
@@ -103,6 +113,8 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		MountGH:           opts.MountGH,
 		MountGHRW:         opts.MountGHRW,
 		MountGHPath:       mountGHPath,
+		MountOpenCodeAuth: opts.MountOpenCodeAuth,
+		OpenCodeAuthPath:  opencodeAuthPath,
 		ForceBuild:        opts.ForceBuild,
 		Arch:              envOrDefault("ARCH", "arm64"),
 		MiseVersion:       envOrDefault("MISE_VERSION", "2026.2.13"),
@@ -212,6 +224,14 @@ func validateSpinDir(spinDir string) error {
 	}
 
 	return nil
+}
+
+func hostOpenCodeAuthPath(homeDir string) string {
+	candidate := filepath.Join(homeDir, ".local", "share", "opencode", "auth.json")
+	if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+		return candidate
+	}
+	return ""
 }
 
 func deriveProjectName(path string) string {

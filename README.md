@@ -53,6 +53,8 @@ You'll see a tmux session with:
 
 Inside the container:
 - `,auth-tools` to authenticate gh and 1password
+- OpenCode auth is reused automatically from host `~/.local/share/opencode/auth.json` when present
+- If host OpenCode auth is missing, run OpenCode auth once inside the container (`/connect` in the OpenCode TUI)
 
 ### Common Workflows
 
@@ -106,7 +108,8 @@ flowchart TB
 1. **CLI** (`caiged`) builds the base image + spin image (if needed)
 2. **Container** starts with your project directory bind-mounted
 3. **Host tmux** creates a session with three windows, each running `docker exec` into the container
-4. You attach to the tmux session and work inside the container via your terminal
+4. Container runs in daemon mode (`AGENT_DAEMON=1`) so it stays alive for tmux `docker exec` windows
+5. You attach to the tmux session and work inside the container via your terminal
 
 **Container naming**: `caiged-<spin>-<project>`
 - Default project name: last two path segments of your working directory
@@ -156,10 +159,16 @@ OpenCode is installed via `bun add -g opencode-ai` (default `OPENCODE_VERSION=la
   - With `--disable-network`, container uses `--network=none` for full isolation
 - **Docker socket**: mounted by default; disable with `--disable-docker-sock`
 - **GitHub config**: mounted read-only from `~/.config/gh`; make read-write with `--mount-gh-rw`
+- **OpenCode auth reuse**: host `~/.local/share/opencode/auth.json` is mounted read-only when available; disable with `--no-mount-opencode-auth`
 
 ### Credentials
 
 The container includes `gh` (GitHub CLI) and `op` (1Password CLI). Run `,auth-tools` or `caiged-onboard` inside the container to authenticate.
+
+OpenCode authentication behavior:
+- By default, caiged mounts host `~/.local/share/opencode/auth.json` read-only when available
+- If that file does not exist on the host, OpenCode starts unauthenticated in the container and you need to complete auth once there (`/connect`)
+- Disable host auth reuse with `--no-mount-opencode-auth`
 
 ---
 

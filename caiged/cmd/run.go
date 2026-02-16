@@ -141,6 +141,9 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 		}
 		args = append(args, "-v", mount)
 	}
+	if cfg.MountOpenCodeAuth && cfg.OpenCodeAuthPath != "" {
+		args = append(args, "-v", fmt.Sprintf("%s:/root/.local/share/opencode/auth.json:ro", cfg.OpenCodeAuthPath))
+	}
 
 	return args
 }

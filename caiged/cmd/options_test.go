@@ -22,3 +22,12 @@ func TestNormalizeOptionsMountGHRWEnablesMountGH(t *testing.T) {
 		t.Fatalf("expected MountGH to be true when MountGHRW is set")
 	}
 }
+
+func TestNormalizeOptionsNoMountOpenCodeAuthWins(t *testing.T) {
+	opts := RunOptions{MountOpenCodeAuth: true, NoMountOpenCodeAuth: true}
+	normalized := normalizeOptions(opts)
+
+	if normalized.MountOpenCodeAuth {
+		t.Fatalf("expected MountOpenCodeAuth to be false when NoMountOpenCodeAuth is set")
+	}
+}

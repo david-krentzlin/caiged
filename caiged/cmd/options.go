@@ -3,16 +3,18 @@ package cmd
 import "github.com/spf13/cobra"
 
 type RunOptions struct {
-	Spin              string
-	Project           string
-	Repo              string
-	DisableNetwork    bool
-	DisableDockerSock bool
-	MountGH           bool
-	MountGHRW         bool
-	NoMountGH         bool
-	ForceBuild        bool
-	DetachOnly        bool
+	Spin                string
+	Project             string
+	Repo                string
+	DisableNetwork      bool
+	DisableDockerSock   bool
+	MountOpenCodeAuth   bool
+	NoMountOpenCodeAuth bool
+	MountGH             bool
+	MountGHRW           bool
+	NoMountGH           bool
+	ForceBuild          bool
+	DetachOnly          bool
 }
 
 var runOpts = RunOptions{}
@@ -27,6 +29,8 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().BoolVar(&opts.MountOpenCodeAuth, "mount-opencode-auth", true, "Mount host OpenCode auth.json when available")
+	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
 	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
 	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
@@ -40,6 +44,8 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
 	cmd.Flags().BoolVar(&opts.DisableNetwork, "disable-network", false, "Disable network access")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().BoolVar(&opts.MountOpenCodeAuth, "mount-opencode-auth", true, "Mount host OpenCode auth.json when available")
+	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")
 	cmd.Flags().BoolVar(&opts.MountGH, "mount-gh", true, "Mount host gh config when available")
 	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
 	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
@@ -52,6 +58,9 @@ func addBuildFlags(cmd *cobra.Command, opts *RunOptions) {
 }
 
 func normalizeOptions(opts RunOptions) RunOptions {
+	if opts.NoMountOpenCodeAuth {
+		opts.MountOpenCodeAuth = false
+	}
 	if opts.NoMountGH {
 		opts.MountGH = false
 		opts.MountGHRW = false

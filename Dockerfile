@@ -72,6 +72,7 @@ COPY config/zprofile /etc/zsh/zprofile
 
 RUN mkdir -p /root/.config/mise \
   && cp /etc/mise.toml /root/.config/mise/config.toml \
+  && mkdir -p /root/.local/share/opencode \
   && mkdir -p "${MISE_DATA_DIR}" \
   && MISE_YES=1 mise install \
   && mise reshim \

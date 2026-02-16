@@ -202,3 +202,24 @@ func TestResolveConfigAcceptsNewSpinWithoutCodeChanges(t *testing.T) {
 		t.Fatalf("expected spin image caiged:%s, got %q", spinName, cfg.SpinImage)
 	}
 }
+
+func TestHostOpenCodeAuthPath(t *testing.T) {
+	home := t.TempDir()
+	authDir := filepath.Join(home, ".local", "share", "opencode")
+	if err := os.MkdirAll(authDir, 0o755); err != nil {
+		t.Fatalf("mkdir auth dir: %v", err)
+	}
+
+	if got := hostOpenCodeAuthPath(home); got != "" {
+		t.Fatalf("expected empty auth path when file is missing, got %q", got)
+	}
+
+	authFile := filepath.Join(authDir, "auth.json")
+	if err := os.WriteFile(authFile, []byte("{}"), 0o644); err != nil {
+		t.Fatalf("write auth.json: %v", err)
+	}
+
+	if got := hostOpenCodeAuthPath(home); got != authFile {
+		t.Fatalf("expected OpenCode auth path %q, got %q", authFile, got)
+	}
+}
