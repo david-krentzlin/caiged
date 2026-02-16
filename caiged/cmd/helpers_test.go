@@ -70,11 +70,11 @@ func TestDockerRunArgsModes(t *testing.T) {
 	cfg := Config{
 		WorkdirAbs:        "/tmp/work",
 		ContainerName:     "caiged-qa-demo",
-		EnableNetwork:     true,
 		DisableDockerSock: false,
 		MountGH:           true,
 		MountGHRW:         false,
 		MountGHPath:       "/tmp/gh",
+		OpencodePort:      4096,
 	}
 
 	detached := dockerRunArgs(cfg, dockerRunDetached)
@@ -84,8 +84,11 @@ func TestDockerRunArgsModes(t *testing.T) {
 	if !slices.Contains(detached, "-d") {
 		t.Fatalf("detached args should include -d: %v", detached)
 	}
-	if !slices.Contains(detached, "--network=host") {
-		t.Fatalf("detached args should use host networking by default: %v", detached)
+	if !slices.Contains(detached, "--network=bridge") {
+		t.Fatalf("detached args should use bridge networking: %v", detached)
+	}
+	if !slices.Contains(detached, "-p") {
+		t.Fatalf("detached args should include port mapping: %v", detached)
 	}
 
 	oneshoot := dockerRunArgs(cfg, dockerRunOneShot)
@@ -94,14 +97,17 @@ func TestDockerRunArgsModes(t *testing.T) {
 	}
 }
 
-func TestDockerRunArgsDisableNetwork(t *testing.T) {
-	cfg := Config{WorkdirAbs: "/tmp/work", EnableNetwork: false}
+func TestDockerRunArgsNetworkAlwaysEnabled(t *testing.T) {
+	cfg := Config{WorkdirAbs: "/tmp/work", OpencodePort: 4096}
 	args := dockerRunArgs(cfg, dockerRunDetached)
-	if !slices.Contains(args, "--network=none") {
-		t.Fatalf("expected --network=none when network disabled: %v", args)
+	if !slices.Contains(args, "--network=bridge") {
+		t.Fatalf("expected --network=bridge (network always enabled): %v", args)
 	}
-	if slices.Contains(args, "--network=host") {
-		t.Fatalf("did not expect --network=host when network disabled: %v", args)
+	if slices.Contains(args, "--network=none") {
+		t.Fatalf("did not expect --network=none (network always enabled): %v", args)
+	}
+	if !slices.Contains(args, "-p") {
+		t.Fatalf("expected port mapping when network enabled: %v", args)
 	}
 }
 
@@ -256,9 +262,9 @@ func TestResolveSecretEnvs(t *testing.T) {
 
 func TestDockerRunArgsIncludesSecretEnvs(t *testing.T) {
 	cfg := Config{
-		WorkdirAbs:    "/tmp/work",
-		EnableNetwork: true,
-		SecretEnvs:    []string{"JFROG_OIDC_USER=ci-user", "JFROG_OIDC_TOKEN=topsecret"},
+		WorkdirAbs:   "/tmp/work",
+		OpencodePort: 4096,
+		SecretEnvs:   []string{"JFROG_OIDC_USER=ci-user", "JFROG_OIDC_TOKEN=topsecret"},
 	}
 
 	args := dockerRunArgs(cfg, dockerRunDetached)

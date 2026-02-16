@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -156,12 +157,10 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	}
 
 	args = append(args, "-v", fmt.Sprintf("%s:/workspace", cfg.WorkdirAbs))
-	if !cfg.EnableNetwork {
-		args = append(args, "--network=none")
-	} else {
-		args = append(args, "--network=bridge")
-		args = append(args, "-p", fmt.Sprintf("%d:4096", cfg.OpencodePort))
-	}
+	// Always enable networking - OpenCode needs network access for LLM APIs
+	args = append(args, "--network=bridge")
+	args = append(args, "-p", fmt.Sprintf("%d:4096", cfg.OpencodePort))
+
 	if !cfg.DisableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
 	}
@@ -189,10 +188,8 @@ func wrapNetworkRunError(cfg Config, err error) error {
 	if err == nil {
 		return nil
 	}
-	if cfg.EnableNetwork {
-		return fmt.Errorf("docker run failed with host networking: %w (host networking is required for OAuth callbacks; if unsupported in Docker Desktop, enable host networking or use --disable-network)", err)
-	}
-	return err
+	// Network is always enabled for OpenCode to access LLM APIs
+	return fmt.Errorf("docker run failed: %w", err)
 }
 
 func startContainerDetached(cfg Config) error {
@@ -271,6 +268,44 @@ func connectToOpenCode(cfg Config) error {
 	}
 
 	// Now connect with the OpenCode client
+	// Try to get the last session ID from the container
 	connectArgs := []string{"attach", url, "--dir", "/workspace", "--password", cfg.OpencodePassword}
+
+	lastSessionID := getLastSessionID(cfg)
+	if lastSessionID != "" {
+		connectArgs = append(connectArgs, "--session", lastSessionID)
+	}
+
 	return execCommand("opencode", connectArgs, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+}
+
+func getLastSessionID(cfg Config) string {
+	// Query the container for the most recent session
+	// We run: docker exec <container> opencode session list --format json -n 1
+	output, err := runCapture("docker", []string{
+		"exec", cfg.ContainerName,
+		"opencode", "session", "list", "--format", "json", "-n", "1",
+	}, ExecOptions{})
+
+	if err != nil {
+		return ""
+	}
+
+	// Parse the JSON output to get the session ID
+	// The output should be a JSON array with session objects
+	var sessions []map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &sessions); err != nil {
+		return ""
+	}
+
+	if len(sessions) == 0 {
+		return ""
+	}
+
+	// Get the ID from the first (most recent) session
+	if id, ok := sessions[0]["id"].(string); ok {
+		return id
+	}
+
+	return ""
 }
