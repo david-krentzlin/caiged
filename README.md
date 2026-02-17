@@ -1,6 +1,6 @@
 # Caiged for OpenCode
 
-Caiged is tool to gloss over the boring plumbing to run OpenCode in server mode in a docker container.
+Caiged is a tool to gloss over the boring plumbing to run OpenCode in server mode in a docker container.
 The goal is to restrict what your agent can do while maintaining relatively good UX and resource usage.
 
 It allows you to create specially tailored OpenCode instances, that have their own AGENTS.md, and skills pre-configured,
@@ -26,7 +26,7 @@ caiged . --spin dev             # Smart attach/create in current directory
 ```
 
 This creates (or attaches to) a container with OpenCode server running, preconfigured with the dev spin.
-You will be automatically dropped into OpenCode TUI (on you local machine) which connects to the OpenCode server in the container.
+You will be automatically dropped into OpenCode TUI (on your local machine) which connects to the OpenCode server in the container.
 
 
 ### Read the docs
@@ -49,18 +49,18 @@ easier and gets you productive.
 [Docker sandboxes](https://docs.docker.com/ai/sandboxes/) solve fundamentally the same problem, but make different trade-offs.
 
 Docker sandboxes give you higher degrees of isolation, but at the cost of requiring more resources and making some use-cases very cumbersome.
-If you want to run you agent in yolo mode without much superivsion, docker sandboxes are the better option for you. Also docker sandboxes provide
+If you want to run you agent in yolo mode without much supervision, docker sandboxes are the better option for you. Also, docker sandboxes provide
 some other niceties like making sure you git configuration (username etc. are present)
 
-Caiged, makes a different trade-off. It does not use a full vm but just a docker container, which is lighter on resource usages.
-**It provides docker access through a mount of the host docker socket.** This means you agent will see other docker containers.
+Caiged, makes a different trade-off. It does not use a full vm but just a docker container, which is lighter on resource usage.
+**It provides docker access through a mount of the host docker socket.** This means your agent will see other docker containers.
 If that is not acceptable for you, please use docker sandboxes or something else.
 In my workflows however I found that this is good enough and the filesystem isolation is what I really care about.
 (More than once have I seen the agent wander off into the distance on my filesystem way outside the current working directory.)
 
 ---
 
-## Prequisites
+## Prerequisites
 
 You will need to have the following available on your host system:
 
@@ -180,10 +180,9 @@ caiged --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 
 ## Container / Spin Security
 
-- **Network**: uses bridge networking with port mapping by default; disable with `--disable-network`
+- **Network**: uses bridge networking with port mapping
   - Bridge networking with port mapping allows secure OpenCode server access from host
   - Each container gets a unique port (starting at 4096) mapped to container port 4096
-  - With `--disable-network`, container uses `--network=none` for full isolation
 - **Docker socket**: mounted by default; disable with `--disable-docker-sock`
 - **GitHub config**: mounted read-only from `~/.config/gh`; make read-write with `--mount-gh-rw`
 - **OpenCode auth reuse**: host `~/.local/share/opencode/auth.json` is mounted read-only when available; disable with `--no-mount-opencode-auth`
@@ -206,7 +205,7 @@ OpenCode authentication behavior:
 **Example:**
 
 ```bash
-caiged . --spin dev --secret-env JFROG_OIDC_TOKEN --secret-env JFROG_OIDC_TOKEN
+caiged . --spin dev --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 ```
 
 ## Missing features
