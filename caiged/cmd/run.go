@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/david-krentzlin/caiged/caiged/internal/docker"
@@ -14,6 +15,21 @@ import (
 func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	workdir := args[0]
 	commandArgs := args[1:]
+
+	// Warn and confirm if docker socket is enabled
+	if opts.EnableDockerSock {
+		fmt.Fprintf(os.Stderr, "\n%s\n", ErrorStyle.Render("⚠️  WARNING: Docker socket access enabled"))
+		fmt.Fprintf(os.Stderr, "%s\n", ErrorStyle.Render("   The agent will have root-equivalent access to your host system"))
+		fmt.Fprintf(os.Stderr, "%s\n", ErrorStyle.Render("   The agent can escape the container and access all files on your machine"))
+		fmt.Fprintf(os.Stderr, "\n%s", InfoStyle.Render("Continue? (yes/no): "))
+
+		var response string
+		fmt.Scanln(&response)
+		if response != "yes" {
+			return fmt.Errorf("operation cancelled by user")
+		}
+		fmt.Println()
+	}
 
 	config, err := resolveConfig(opts, workdir)
 	if err != nil {
@@ -58,13 +74,20 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Project:"), ProjectStyle.Render(config.Project))
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Container:"), ContainerStyle.Render(config.ContainerName))
 	fmt.Printf("  %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%d", config.OpencodePort)))
-	fmt.Printf("  %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(config.OpencodePassword))
+	if config.ShowSessionPassword {
+		fmt.Printf("  %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(config.OpencodePassword))
+	}
 	fmt.Println()
 	fmt.Printf("  %s\n", HeaderStyle.Render("Reconnect:"))
 	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("caiged connect %s", config.Project)))
 	fmt.Println()
 	fmt.Printf("  %s\n", HeaderStyle.Render("Manual Connect:"))
-	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", config.OpencodePort, config.OpencodePassword)))
+	if config.ShowSessionPassword {
+		fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", config.OpencodePort, config.OpencodePassword)))
+	} else {
+		fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password <use --show-session-password>", config.OpencodePort)))
+		fmt.Printf("    %s\n", InfoStyle.Render("💡 Add --show-session-password flag to display the password"))
+	}
 	fmt.Println(DividerStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 	fmt.Println()
 
@@ -114,7 +137,7 @@ func buildImage(cfg Config, client *docker.Client, target string) error {
 	}
 
 	return client.ImageBuild(docker.BuildConfig{
-		Dockerfile: "Dockerfile",
+		Dockerfile: filepath.Join(cfg.DockerDir, "Dockerfile"),
 		Context:    cfg.DockerDir,
 		Target:     target,
 		Tag:        imageName,
@@ -224,6 +247,7 @@ func connectToOpenCode(cfg Config, dockerClient *docker.Client, executor exec.Cm
 	fmt.Printf("%s", InfoStyle.Render("⏳ Waiting for OpenCode server to start"))
 	maxWait := 60 * time.Second
 	checkInterval := 500 * time.Millisecond
+	maxCheckInterval := 5 * time.Second
 	deadline := time.Now().Add(maxWait)
 
 	url := fmt.Sprintf("http://localhost:%d", cfg.OpencodePort)
@@ -232,17 +256,9 @@ func connectToOpenCode(cfg Config, dockerClient *docker.Client, executor exec.Cm
 	}
 
 	serverReady := false
-	attempts := 0
 	for time.Now().Before(deadline) {
-		attempts++
 		// Try to make an HTTP request to see if server is responding
 		resp, err := client.Get(url)
-
-		// Debug: print what we got every 10 attempts
-		if attempts%10 == 0 {
-			fmt.Printf("\n[debug attempt %d] resp=%v err=%v\n", attempts, resp != nil, err)
-			fmt.Printf("%s", InfoStyle.Render("⏳ Waiting for OpenCode server to start"))
-		}
 
 		// If we got a response object, the server is responding (even if it's an error like 401)
 		if resp != nil {
@@ -261,11 +277,17 @@ func connectToOpenCode(cfg Config, dockerClient *docker.Client, executor exec.Cm
 
 		fmt.Printf(".")
 		time.Sleep(checkInterval)
+
+		// Exponential backoff: double the interval, but cap at max
+		checkInterval = checkInterval * 2
+		if checkInterval > maxCheckInterval {
+			checkInterval = maxCheckInterval
+		}
 	}
 
 	if !serverReady {
 		fmt.Printf("\n")
-		return fmt.Errorf("OpenCode server failed to start within %v (attempted %d times)", maxWait, attempts)
+		return fmt.Errorf("OpenCode server failed to start within %v", maxWait)
 	}
 
 	// Now connect with the OpenCode client

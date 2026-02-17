@@ -26,6 +26,10 @@ build:
 .PHONY: install
 install: build
 	mkdir -p $(INSTALL_DIR)
+	@if [ -f $(INSTALL_BIN) ]; then \
+		echo "Backing up existing caiged binary to $(INSTALL_BIN).backup"; \
+		mv $(INSTALL_BIN) $(INSTALL_BIN).backup; \
+	fi
 	cp $(BUILD_BIN) $(INSTALL_BIN)
 	@echo "Installing man pages..."
 	mkdir -p $(MAN_DIR)
@@ -45,7 +49,7 @@ uninstall:
 
 .PHONY: test
 test:
-	go test ./internal/... -v
+	cd $(CAIGED_DIR) && go test ./... -v
 
 .PHONY: test-integration
 test-integration:

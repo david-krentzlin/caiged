@@ -68,13 +68,13 @@ func TestSlugifyProjectName(t *testing.T) {
 
 func TestDockerRunArgsModes(t *testing.T) {
 	cfg := Config{
-		WorkdirAbs:        "/tmp/work",
-		ContainerName:     "caiged-qa-demo",
-		DisableDockerSock: false,
-		MountGH:           true,
-		MountGHRW:         false,
-		MountGHPath:       "/tmp/gh",
-		OpencodePort:      4096,
+		WorkdirAbs:       "/tmp/work",
+		ContainerName:    "caiged-qa-demo",
+		EnableDockerSock: false,
+		MountGH:          true,
+		MountGHRW:        false,
+		MountGHPath:      "/tmp/gh",
+		OpencodePort:     4096,
 	}
 
 	detached := dockerRunArgs(cfg, dockerRunDetached)

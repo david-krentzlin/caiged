@@ -10,6 +10,8 @@ import (
 )
 
 func newListCmd() *cobra.Command {
+	var showSessionPassword bool
+
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List active caiged containers",
@@ -57,7 +59,7 @@ func newListCmd() *cobra.Command {
 					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), RunningStyle.Render(status))
 					if port != "" {
 						fmt.Printf("     %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%s", port)))
-						if password != "" {
+						if showSessionPassword && password != "" {
 							fmt.Printf("     %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(password))
 						}
 					}
@@ -115,7 +117,7 @@ func newListCmd() *cobra.Command {
 					fmt.Printf("     %s %s\n", LabelStyle.Render("Status:"), statusStyle.Render(status))
 					if port != "" {
 						fmt.Printf("     %s %s\n", LabelStyle.Render("Server:"), ValueStyle.Render(fmt.Sprintf("http://localhost:%s", port)))
-						if password != "" {
+						if showSessionPassword && password != "" {
 							fmt.Printf("     %s %s\n", LabelStyle.Render("Password:"), InfoStyle.Render(password))
 						}
 					}
@@ -135,6 +137,9 @@ func newListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&showSessionPassword, "show-session-password", false, "Display OpenCode session password in output")
+
 	return cmd
 }
 

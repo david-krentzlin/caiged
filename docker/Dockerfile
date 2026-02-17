@@ -18,15 +18,21 @@ ENV COLORTERM=truecolor
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     bash \
+    build-essential \
     ca-certificates \
     curl \
+    docker.io \
+    fd-find \
     git \
     gnupg \
     jq \
     ncurses-term \
     openssh-client \
+    python3 \
+    python3-pip \
+    ripgrep \
     tmux \
-    docker.io \
+    tree \
     unzip \
     xz-utils \
     zsh \

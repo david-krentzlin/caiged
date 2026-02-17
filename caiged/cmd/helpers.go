@@ -14,36 +14,37 @@ import (
 	"strings"
 )
 
-var envVarNamePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+var envVarNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 type Config struct {
-	WorkdirAbs        string
-	RepoRoot          string
-	DockerDir         string
-	Spin              string
-	SpinDir           string
-	Project           string
-	ProjectSlug       string
-	ImagePrefix       string
-	BaseImage         string
-	SpinImage         string
-	ContainerName     string
-	ContainerShell    string
-	EnableDockerSock  bool
-	MountGH           bool
-	MountGHRW         bool
-	MountGHPath       string
-	MountOpenCodeAuth bool
-	OpenCodeAuthPath  string
-	SecretEnvs        []string
-	SecretEnvFile     string
-	ForceBuild        bool
-	Arch              string
-	MiseVersion       string
-	GHVersion         string
-	OpencodeVersion   string
-	OpencodePort      int
-	OpencodePassword  string
+	WorkdirAbs          string
+	RepoRoot            string
+	DockerDir           string
+	Spin                string
+	SpinDir             string
+	Project             string
+	ProjectSlug         string
+	ImagePrefix         string
+	BaseImage           string
+	SpinImage           string
+	ContainerName       string
+	ContainerShell      string
+	EnableDockerSock    bool
+	MountGH             bool
+	MountGHRW           bool
+	MountGHPath         string
+	MountOpenCodeAuth   bool
+	OpenCodeAuthPath    string
+	SecretEnvs          []string
+	SecretEnvFile       string
+	ForceBuild          bool
+	ShowSessionPassword bool
+	Arch                string
+	MiseVersion         string
+	GHVersion           string
+	OpencodeVersion     string
+	OpencodePort        int
+	OpencodePassword    string
 }
 
 type ExecOptions struct {
@@ -148,33 +149,34 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 	}
 
 	config := Config{
-		WorkdirAbs:        workdirAbs,
-		RepoRoot:          repoRoot,
-		DockerDir:         filepath.Join(repoRoot, "docker"),
-		Spin:              spin,
-		SpinDir:           spinDir,
-		Project:           projectWithSpin,
-		ProjectSlug:       projectSlug,
-		ImagePrefix:       imagePrefix,
-		BaseImage:         fmt.Sprintf("%s:base", imagePrefix),
-		SpinImage:         fmt.Sprintf("%s:%s", imagePrefix, spin),
-		ContainerName:     containerName,
-		ContainerShell:    containerShell,
-		EnableDockerSock:  opts.EnableDockerSock,
-		MountGH:           opts.MountGH,
-		MountGHRW:         opts.MountGHRW,
-		MountGHPath:       mountGHPath,
-		MountOpenCodeAuth: opts.MountOpenCodeAuth,
-		OpenCodeAuthPath:  opencodeAuthPath,
-		SecretEnvs:        secretEnvs,
-		SecretEnvFile:     secretEnvFile,
-		ForceBuild:        opts.ForceBuild,
-		Arch:              envOrDefault("ARCH", "arm64"),
-		MiseVersion:       envOrDefault("MISE_VERSION", "2026.2.13"),
-		GHVersion:         envOrDefault("GH_VERSION", "2.86.0"),
-		OpencodeVersion:   envOrDefault("OPENCODE_VERSION", "latest"),
-		OpencodePort:      opencodePort,
-		OpencodePassword:  opencodePassword,
+		WorkdirAbs:          workdirAbs,
+		RepoRoot:            repoRoot,
+		DockerDir:           filepath.Join(repoRoot, "docker"),
+		Spin:                spin,
+		SpinDir:             spinDir,
+		Project:             projectWithSpin,
+		ProjectSlug:         projectSlug,
+		ImagePrefix:         imagePrefix,
+		BaseImage:           fmt.Sprintf("%s:base", imagePrefix),
+		SpinImage:           fmt.Sprintf("%s:%s", imagePrefix, spin),
+		ContainerName:       containerName,
+		ContainerShell:      containerShell,
+		EnableDockerSock:    opts.EnableDockerSock,
+		MountGH:             opts.MountGH,
+		MountGHRW:           opts.MountGHRW,
+		MountGHPath:         mountGHPath,
+		MountOpenCodeAuth:   opts.MountOpenCodeAuth,
+		OpenCodeAuthPath:    opencodeAuthPath,
+		SecretEnvs:          secretEnvs,
+		SecretEnvFile:       secretEnvFile,
+		ForceBuild:          opts.ForceBuild,
+		ShowSessionPassword: opts.ShowSessionPassword,
+		Arch:                envOrDefault("ARCH", "arm64"),
+		MiseVersion:         envOrDefault("MISE_VERSION", "2026.2.13"),
+		GHVersion:           envOrDefault("GH_VERSION", "2.86.0"),
+		OpencodeVersion:     envOrDefault("OPENCODE_VERSION", "latest"),
+		OpencodePort:        opencodePort,
+		OpencodePassword:    opencodePassword,
 	}
 
 	return config, nil
@@ -436,7 +438,7 @@ func findFreePort(startPort int) (int, error) {
 			return port, nil
 		}
 	}
-	return 0, fmt.Errorf("no free port found in range %d-%d", startPort, startPort+999)
+	return 0, fmt.Errorf("no free port found in range %d-%d. Consider cleaning up old containers with 'caiged containers list' and removing unused ones", startPort, startPort+999)
 }
 
 func getOrCreateSalt() (string, error) {

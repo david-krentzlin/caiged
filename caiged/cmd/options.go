@@ -14,6 +14,7 @@ type RunOptions struct {
 	NoMountGH           bool
 	ForceBuild          bool
 	NoConnect           bool
+	ShowSessionPassword bool
 	// Computed fields (not set by flags)
 	MountOpenCodeAuth bool
 	MountGH           bool
@@ -36,6 +37,7 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")
 	cmd.Flags().BoolVar(&opts.MountGHRW, "mount-gh-rw", false, "Mount host gh config read-write")
 	cmd.Flags().BoolVar(&opts.NoMountGH, "no-mount-gh", false, "Do not mount host gh config")
+	cmd.Flags().BoolVar(&opts.ShowSessionPassword, "show-session-password", false, "Display OpenCode session password in output")
 	addRebuildImagesFlag(cmd, opts)
 	cmd.Flags().BoolVar(&opts.NoConnect, "no-connect", false, "Start container without connecting to OpenCode TUI")
 }
