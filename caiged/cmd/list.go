@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/david-krentzlin/caiged/caiged/internal/docker"
+	"github.com/david-krentzlin/caiged/caiged/internal/exec"
 	"github.com/spf13/cobra"
 )
 
@@ -14,11 +16,14 @@ func newListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 
-			runningOutput, err := runCapture("docker", []string{"ps", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{})
+			executor := exec.NewRealExecutor()
+			client := docker.NewClient(executor)
+
+			runningLines, err := client.ContainerList(fmt.Sprintf("name=^/%s-", prefix), "{{.Names}}\t{{.Status}}")
 			if err != nil {
 				return fmt.Errorf("list running containers: %w", err)
 			}
-			runningLines := nonEmptyLines(runningOutput)
+			runningLines = filterNonEmpty(runningLines)
 			if len(runningLines) == 0 {
 				fmt.Println("Running containers: none")
 			} else {
@@ -37,11 +42,8 @@ func newListCmd() *cobra.Command {
 					projectName := strings.TrimPrefix(containerName, prefix+"-")
 
 					// Get the port from the container label
-					port := ""
-					portOutput, err := runCapture("docker", []string{"inspect", "--format", "{{index .Config.Labels \"opencode.port\"}}", containerName}, ExecOptions{})
-					if err == nil {
-						port = strings.TrimSpace(portOutput)
-					}
+					port, _ := client.ContainerGetLabel(containerName, "opencode.port")
+					port = strings.TrimSpace(port)
 
 					// Generate the password
 					password := ""
@@ -67,11 +69,11 @@ func newListCmd() *cobra.Command {
 				fmt.Println()
 			}
 
-			allOutput, err := runCapture("docker", []string{"ps", "-a", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.Names}}\t{{.Status}}"}, ExecOptions{})
+			allLines, err := client.ContainerListAll(fmt.Sprintf("name=^/%s-", prefix), "{{.Names}}\t{{.Status}}")
 			if err != nil {
 				return fmt.Errorf("list all containers: %w", err)
 			}
-			allLines := nonEmptyLines(allOutput)
+			allLines = filterNonEmpty(allLines)
 			if len(allLines) == 0 {
 				fmt.Println("All containers: none")
 			} else {
@@ -100,10 +102,8 @@ func newListCmd() *cobra.Command {
 					port := ""
 					password := ""
 					if isRunning {
-						portOutput, err := runCapture("docker", []string{"inspect", "--format", "{{index .Config.Labels \"opencode.port\"}}", containerName}, ExecOptions{})
-						if err == nil {
-							port = strings.TrimSpace(portOutput)
-						}
+						port, _ = client.ContainerGetLabel(containerName, "opencode.port")
+						port = strings.TrimSpace(port)
 						if pwd, err := generateOpencodePassword(containerName); err == nil {
 							password = pwd
 						}
@@ -137,8 +137,8 @@ func newListCmd() *cobra.Command {
 	return cmd
 }
 
-func nonEmptyLines(output string) []string {
-	lines := strings.Split(output, "\n")
+// filterNonEmpty filters out empty strings from a slice
+func filterNonEmpty(lines []string) []string {
 	result := make([]string, 0, len(lines))
 	for _, line := range lines {
 		line = strings.TrimSpace(line)

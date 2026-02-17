@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/david-krentzlin/caiged/caiged/internal/docker"
+	"github.com/david-krentzlin/caiged/caiged/internal/exec"
 	"github.com/spf13/cobra"
 )
 
@@ -22,5 +24,9 @@ func newShellCmd() *cobra.Command {
 func shellCommand(containerName string) error {
 	// Open a shell directly in the container (for debugging/maintenance)
 	shell := envOrDefault("CONTAINER_SHELL", "/bin/zsh")
-	return execCommand("docker", []string{"exec", "-it", containerName, shell}, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+
+	executor := exec.NewRealExecutor()
+	client := docker.NewClient(executor).WithOutput(os.Stdout, os.Stderr)
+
+	return client.ContainerExec(containerName, []string{shell}, true)
 }

@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/david-krentzlin/caiged/caiged/internal/docker"
+	"github.com/david-krentzlin/caiged/caiged/internal/exec"
+	"github.com/david-krentzlin/caiged/caiged/internal/opencode"
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +21,17 @@ func newConnectCmd() *cobra.Command {
 			projectSlug := slugifyProjectName(args[0])
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 
+			executor := exec.NewRealExecutor()
+			dockerClient := docker.NewClient(executor)
+
 			// Container names are in format: {prefix}-{spin}-{project}
 			// We search for any container that ends with the project slug
-			output, err := runCapture("docker", []string{"ps", "--filter", fmt.Sprintf("name=-%s$", projectSlug), "--format", "{{.Names}}"}, ExecOptions{})
+			containers, err := dockerClient.ContainerList(fmt.Sprintf("name=-%s$", projectSlug), "{{.Names}}")
 			if err != nil {
 				return fmt.Errorf("search containers: %w", err)
 			}
 
-			containers := nonEmptyLines(output)
+			containers = filterNonEmpty(containers)
 			if len(containers) == 0 {
 				return fmt.Errorf("no running container found for project: %s", args[0])
 			}
@@ -53,12 +58,12 @@ func newConnectCmd() *cobra.Command {
 			}
 
 			// Get the port from the container label
-			labelOutput, err := runCapture("docker", []string{"inspect", "--format", "{{index .Config.Labels \"opencode.port\"}}", containerName}, ExecOptions{})
+			port, err := dockerClient.ContainerGetLabel(containerName, "opencode.port")
 			if err != nil {
 				return fmt.Errorf("inspect container: %w", err)
 			}
 
-			port := strings.TrimSpace(labelOutput)
+			port = strings.TrimSpace(port)
 			if port == "" {
 				return fmt.Errorf("no port found for container: %s (container may be using legacy configuration)", containerName)
 			}
@@ -69,45 +74,28 @@ func newConnectCmd() *cobra.Command {
 				return fmt.Errorf("generate password: %w", err)
 			}
 
-			// Connect to the OpenCode server using opencode attach command
-			url := fmt.Sprintf("http://localhost:%s", port)
-			connectArgs := []string{"attach", url, "--dir", "/workspace", "--password", password}
-
 			// Query the container for the most recent session and continue it
-			lastSessionID := getLastSessionIDForContainer(containerName)
-			if lastSessionID != "" {
-				fmt.Printf("%s\n", InfoStyle.Render(fmt.Sprintf("📋 Resuming session: %s", lastSessionID)))
-				connectArgs = append(connectArgs, "--session", lastSessionID)
+			lastSessionID, err := opencode.GetLastSessionFromContainer(
+				func(name string, cmd []string) (string, error) {
+					return dockerClient.ContainerExecCapture(name, cmd)
+				},
+				containerName,
+			)
+			if err == nil && lastSessionID != "" {
+				fmt.Printf("%s\n", InfoStyle.Render(opencode.FormatSessionResumptionMessage(lastSessionID)))
 			}
 
-			return execCommand("opencode", connectArgs, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
+			// Connect to the OpenCode server using opencode client
+			opencodeClient := opencode.NewClient(executor).WithOutput(os.Stdout, os.Stderr, os.Stdin)
+			url := fmt.Sprintf("http://localhost:%s", port)
+
+			return opencodeClient.Attach(opencode.AttachConfig{
+				URL:       url,
+				Workdir:   "/workspace",
+				Password:  password,
+				SessionID: lastSessionID,
+			})
 		},
 	}
 	return cmd
-}
-
-func getLastSessionIDForContainer(containerName string) string {
-	// Get the most recent session file from the container's storage directory
-	// Sessions are stored as files in /root/.local/share/opencode/storage/session_diff/
-	// with filenames like ses_<id>.json
-	output, err := runCapture("docker", []string{
-		"exec", containerName,
-		"sh", "-c",
-		"ls -t /root/.local/share/opencode/storage/session_diff/ses_*.json 2>/dev/null | head -n1",
-	}, ExecOptions{})
-
-	if err != nil || output == "" {
-		return ""
-	}
-
-	// Extract session ID from filename
-	// Path format: /root/.local/share/opencode/storage/session_diff/ses_<id>.json
-	filename := filepath.Base(strings.TrimSpace(output))
-	if !strings.HasPrefix(filename, "ses_") || !strings.HasSuffix(filename, ".json") {
-		return ""
-	}
-
-	// Remove "ses_" prefix and ".json" suffix to get the session ID
-	sessionID := strings.TrimSuffix(strings.TrimPrefix(filename, "ses_"), ".json")
-	return "ses_" + sessionID
 }

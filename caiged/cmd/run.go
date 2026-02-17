@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
+
+	"github.com/david-krentzlin/caiged/caiged/internal/docker"
+	"github.com/david-krentzlin/caiged/caiged/internal/exec"
+	"github.com/david-krentzlin/caiged/caiged/internal/opencode"
 )
 
 func runCommand(args []string, opts RunOptions, forceConnect bool) error {
@@ -18,18 +20,21 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 		return err
 	}
 
-	if err := ensureImages(config); err != nil {
+	executor := exec.NewRealExecutor()
+	dockerClient := docker.NewClient(executor).WithOutput(os.Stdout, os.Stderr)
+
+	if err := ensureImages(config, dockerClient); err != nil {
 		return err
 	}
 
 	if len(commandArgs) > 0 {
-		return runContainerCommand(config, commandArgs)
+		return runContainerCommand(config, dockerClient, commandArgs)
 	}
 
 	// Check if container is already running
-	alreadyRunning := containerRunning(config)
+	alreadyRunning := dockerClient.ContainerIsRunning(config.ContainerName)
 
-	if err := startContainerDetached(config); err != nil {
+	if err := startContainerDetached(config, dockerClient); err != nil {
 		return err
 	}
 
@@ -63,74 +68,54 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	}
 
 	// By default, automatically connect to the OpenCode server
-	return connectToOpenCode(config)
+	return connectToOpenCode(config, dockerClient, executor)
 }
 
-func ensureImages(cfg Config) error {
+func ensureImages(cfg Config, client *docker.Client) error {
 	if cfg.ForceBuild {
-		if err := buildImage(cfg, "base"); err != nil {
+		if err := buildImage(cfg, client, "base"); err != nil {
 			return err
 		}
-		return buildImage(cfg, "spin")
+		return buildImage(cfg, client, "spin")
 	}
 
-	if !imageExists(cfg.BaseImage) {
-		if err := buildImage(cfg, "base"); err != nil {
+	if !client.ImageExists(cfg.BaseImage) {
+		if err := buildImage(cfg, client, "base"); err != nil {
 			return err
 		}
 	}
-	if !imageExists(cfg.SpinImage) {
-		if err := buildImage(cfg, "spin"); err != nil {
+	if !client.ImageExists(cfg.SpinImage) {
+		if err := buildImage(cfg, client, "spin"); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func imageExists(image string) bool {
-	err := execCommand("docker", []string{"image", "inspect", image}, ExecOptions{})
-	return err == nil
-}
-
-func buildImage(cfg Config, target string) error {
-	args := []string{"build", "--target", target, "-f", "Dockerfile", "-t"}
-	if target == "base" {
-		args = append(args, cfg.BaseImage)
-	} else {
-		args = append(args, cfg.SpinImage)
-	}
-	args = append(args,
-		"--build-arg", fmt.Sprintf("ARCH=%s", cfg.Arch),
-		"--build-arg", fmt.Sprintf("MISE_VERSION=%s", cfg.MiseVersion),
-		"--build-arg", fmt.Sprintf("GH_VERSION=%s", cfg.GHVersion),
-		"--build-arg", fmt.Sprintf("OPENCODE_VERSION=%s", cfg.OpencodeVersion),
-	)
+func buildImage(cfg Config, client *docker.Client, target string) error {
+	imageName := cfg.BaseImage
 	if target == "spin" {
-		args = append(args, "--build-arg", fmt.Sprintf("SPIN=%s", cfg.Spin))
+		imageName = cfg.SpinImage
 	}
-	args = append(args, cfg.DockerDir)
 
-	return execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr})
-}
-
-func containerExists(cfg Config) bool {
-	return execCommand("docker", []string{"inspect", cfg.ContainerName}, ExecOptions{}) == nil
-}
-
-func containerRunning(cfg Config) bool {
-	output, err := runCapture("docker", []string{"inspect", "-f", "{{.State.Running}}", cfg.ContainerName}, ExecOptions{})
-	if err != nil {
-		return false
+	buildArgs := map[string]string{
+		"ARCH":             cfg.Arch,
+		"MISE_VERSION":     cfg.MiseVersion,
+		"GH_VERSION":       cfg.GHVersion,
+		"OPENCODE_VERSION": cfg.OpencodeVersion,
 	}
-	return strings.TrimSpace(output) == "true"
+	if target == "spin" {
+		buildArgs["SPIN"] = cfg.Spin
+	}
+
+	return client.ImageBuild(docker.BuildConfig{
+		Dockerfile: "Dockerfile",
+		Context:    cfg.DockerDir,
+		Target:     target,
+		Tag:        imageName,
+		BuildArgs:  buildArgs,
+	})
 }
-
-type dockerRunMode int
-
-const (
-	dockerRunDetached dockerRunMode = iota
-	dockerRunOneShot
-)
 
 func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	args := []string{"run"}
@@ -169,6 +154,13 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	return args
 }
 
+type dockerRunMode int
+
+const (
+	dockerRunDetached dockerRunMode = iota
+	dockerRunOneShot
+)
+
 func wrapNetworkRunError(cfg Config, err error) error {
 	if err == nil {
 		return nil
@@ -177,12 +169,12 @@ func wrapNetworkRunError(cfg Config, err error) error {
 	return fmt.Errorf("docker run failed: %w", err)
 }
 
-func startContainerDetached(cfg Config) error {
-	if containerRunning(cfg) {
+func startContainerDetached(cfg Config, client *docker.Client) error {
+	if client.ContainerIsRunning(cfg.ContainerName) {
 		return nil
 	}
-	if containerExists(cfg) {
-		_ = execCommand("docker", []string{"rm", "-f", cfg.ContainerName}, ExecOptions{})
+	if client.ContainerExists(cfg.ContainerName) {
+		_ = client.ContainerRemove(cfg.ContainerName)
 	}
 
 	args := dockerRunArgs(cfg, dockerRunDetached)
@@ -192,18 +184,29 @@ func startContainerDetached(cfg Config) error {
 		"-e", fmt.Sprintf("OPENCODE_SERVER_PASSWORD=%s", cfg.OpencodePassword),
 		cfg.SpinImage)
 
-	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr}))
+	// Use ContainerRun with the args (note: we're still building args manually for now)
+	// TODO: Eventually migrate to using RunConfig directly
+	executor := exec.NewRealExecutor()
+	return wrapNetworkRunError(cfg, executor.Run("docker", args, exec.RunOptions{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}))
 }
 
-func runContainerCommand(cfg Config, command []string) error {
+func runContainerCommand(cfg Config, client *docker.Client, command []string) error {
 	args := dockerRunArgs(cfg, dockerRunOneShot)
 	args = append(args, "-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin), cfg.SpinImage)
 	args = append(args, command...)
 
-	return wrapNetworkRunError(cfg, execCommand("docker", args, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
+	executor := exec.NewRealExecutor()
+	return wrapNetworkRunError(cfg, executor.Run("docker", args, exec.RunOptions{
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}))
 }
 
-func connectToOpenCode(cfg Config) error {
+func connectToOpenCode(cfg Config, dockerClient *docker.Client, executor exec.CmdExecutor) error {
 	// Wait for the OpenCode server to be ready
 	fmt.Printf("%s", InfoStyle.Render("⏳ Waiting for OpenCode server to start"))
 	maxWait := 60 * time.Second
@@ -254,39 +257,21 @@ func connectToOpenCode(cfg Config) error {
 
 	// Now connect with the OpenCode client
 	// Try to get the last session ID from the container
-	connectArgs := []string{"attach", url, "--dir", "/workspace", "--password", cfg.OpencodePassword}
-
-	lastSessionID := getLastSessionID(cfg)
-	if lastSessionID != "" {
-		fmt.Printf("%s\n", InfoStyle.Render(fmt.Sprintf("📋 Resuming session: %s", lastSessionID)))
-		connectArgs = append(connectArgs, "--session", lastSessionID)
+	lastSessionID, err := opencode.GetLastSessionFromContainer(
+		func(name string, cmd []string) (string, error) {
+			return dockerClient.ContainerExecCapture(name, cmd)
+		},
+		cfg.ContainerName,
+	)
+	if err == nil && lastSessionID != "" {
+		fmt.Printf("%s\n", InfoStyle.Render(opencode.FormatSessionResumptionMessage(lastSessionID)))
 	}
 
-	return execCommand("opencode", connectArgs, ExecOptions{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr})
-}
-
-func getLastSessionID(cfg Config) string {
-	// Get the most recent session file from the container's storage directory
-	// Sessions are stored as files in /root/.local/share/opencode/storage/session_diff/
-	// with filenames like ses_<id>.json
-	output, err := runCapture("docker", []string{
-		"exec", cfg.ContainerName,
-		"sh", "-c",
-		"ls -t /root/.local/share/opencode/storage/session_diff/ses_*.json 2>/dev/null | head -n1",
-	}, ExecOptions{})
-
-	if err != nil || output == "" {
-		return ""
-	}
-
-	// Extract session ID from filename
-	// Path format: /root/.local/share/opencode/storage/session_diff/ses_<id>.json
-	filename := filepath.Base(strings.TrimSpace(output))
-	if !strings.HasPrefix(filename, "ses_") || !strings.HasSuffix(filename, ".json") {
-		return ""
-	}
-
-	// Remove "ses_" prefix and ".json" suffix to get the session ID
-	sessionID := strings.TrimSuffix(strings.TrimPrefix(filename, "ses_"), ".json")
-	return "ses_" + sessionID
+	opencodeClient := opencode.NewClient(executor).WithOutput(os.Stdout, os.Stderr, os.Stdin)
+	return opencodeClient.Attach(opencode.AttachConfig{
+		URL:       url,
+		Workdir:   "/workspace",
+		Password:  cfg.OpencodePassword,
+		SessionID: lastSessionID,
+	})
 }

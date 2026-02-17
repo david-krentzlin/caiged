@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/david-krentzlin/caiged/caiged/internal/docker"
+	"github.com/david-krentzlin/caiged/caiged/internal/exec"
 	"github.com/spf13/cobra"
 )
 
@@ -15,15 +17,18 @@ func newStopAllCmd() *cobra.Command {
 			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
 			errorsList := make([]string, 0)
 
-			containers, err := runCapture("docker", []string{"ps", "-a", "--filter", fmt.Sprintf("name=^/%s-", prefix), "--format", "{{.ID}}"}, ExecOptions{})
+			executor := exec.NewRealExecutor()
+			client := docker.NewClient(executor)
+
+			containerIDs, err := client.ContainerListAll(fmt.Sprintf("name=^/%s-", prefix), "{{.ID}}")
 			if err == nil {
-				for _, line := range strings.Split(containers, "\n") {
-					line = strings.TrimSpace(line)
-					if line == "" {
+				for _, containerID := range containerIDs {
+					containerID = strings.TrimSpace(containerID)
+					if containerID == "" {
 						continue
 					}
-					if rmErr := execCommand("docker", []string{"rm", "-f", line}, ExecOptions{}); rmErr != nil {
-						errorsList = append(errorsList, fmt.Sprintf("remove container %s: %v", line, rmErr))
+					if rmErr := client.ContainerRemove(containerID); rmErr != nil {
+						errorsList = append(errorsList, fmt.Sprintf("remove container %s: %v", containerID, rmErr))
 					}
 				}
 			} else {
