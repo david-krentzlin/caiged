@@ -19,6 +19,8 @@ make install
 
 ### Run
 
+Inside the working directory of your project invoke the following: 
+
 ```bash
 caiged . --spin dev             # Smart attach/create in current directory
 ```
