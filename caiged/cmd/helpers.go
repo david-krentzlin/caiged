@@ -66,7 +66,7 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 	}
 
 	spin := opts.Spin
-	spinDir := filepath.Join(repoRoot, "spins", spin)
+	spinDir := filepath.Join(repoRoot, "docker", "spins", spin)
 	if _, err := os.Stat(spinDir); err != nil {
 		return Config{}, fmt.Errorf("unknown spin: %s (missing %s)", spin, spinDir)
 	}
@@ -245,14 +245,18 @@ func findRepoRoot(start string) (string, bool) {
 }
 
 func isCaigedRoot(path string) bool {
-	spins := filepath.Join(path, "spins")
+	dockerDir := filepath.Join(path, "docker")
+	if info, err := os.Stat(dockerDir); err != nil || !info.IsDir() {
+		return false
+	}
+	spins := filepath.Join(dockerDir, "spins")
 	if info, err := os.Stat(spins); err != nil || !info.IsDir() {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(path, "docker", "Dockerfile")); err != nil {
+	if _, err := os.Stat(filepath.Join(dockerDir, "Dockerfile")); err != nil {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(path, "docker", "entrypoint.sh")); err != nil {
+	if _, err := os.Stat(filepath.Join(dockerDir, "entrypoint.sh")); err != nil {
 		return false
 	}
 	return true

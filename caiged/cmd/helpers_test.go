@@ -11,11 +11,8 @@ func createFakeRepoRoot(t *testing.T) string {
 	t.Helper()
 
 	repoRoot := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoRoot, "spins"), 0o755); err != nil {
-		t.Fatalf("mkdir spins: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(repoRoot, "docker"), 0o755); err != nil {
-		t.Fatalf("mkdir docker: %v", err)
+	if err := os.MkdirAll(filepath.Join(repoRoot, "docker", "spins"), 0o755); err != nil {
+		t.Fatalf("mkdir docker/spins: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(repoRoot, "docker", "Dockerfile"), []byte("FROM scratch\n"), 0o644); err != nil {
 		t.Fatalf("write Dockerfile: %v", err)
@@ -186,7 +183,7 @@ func TestResolveRepoRootPrecedence(t *testing.T) {
 func TestResolveConfigAcceptsNewSpinWithoutCodeChanges(t *testing.T) {
 	repoRoot := createFakeRepoRoot(t)
 	spinName := "engineer"
-	spinDir := filepath.Join(repoRoot, "spins", spinName)
+	spinDir := filepath.Join(repoRoot, "docker", "spins", spinName)
 	if err := os.MkdirAll(spinDir, 0o755); err != nil {
 		t.Fatalf("mkdir spin: %v", err)
 	}

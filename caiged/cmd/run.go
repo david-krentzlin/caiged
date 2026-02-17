@@ -93,7 +93,7 @@ func imageExists(image string) bool {
 }
 
 func buildImage(cfg Config, target string) error {
-	args := []string{"build", "--target", target, "-f", filepath.Join(cfg.DockerDir, "Dockerfile"), "-t"}
+	args := []string{"build", "--target", target, "-f", "Dockerfile", "-t"}
 	if target == "base" {
 		args = append(args, cfg.BaseImage)
 	} else {
@@ -108,7 +108,7 @@ func buildImage(cfg Config, target string) error {
 	if target == "spin" {
 		args = append(args, "--build-arg", fmt.Sprintf("SPIN=%s", cfg.Spin))
 	}
-	args = append(args, cfg.RepoRoot)
+	args = append(args, cfg.DockerDir)
 
 	return execCommand("docker", args, ExecOptions{Stdout: os.Stdout, Stderr: os.Stderr})
 }
