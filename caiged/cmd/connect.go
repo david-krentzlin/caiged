@@ -69,8 +69,7 @@ func newConnectCmd() *cobra.Command {
 				return fmt.Errorf("generate password: %w", err)
 			}
 
-			// Execute opencode attach to connect to the server
-			// Try to get the last session ID and continue it
+			// Connect to the OpenCode server using opencode attach command
 			url := fmt.Sprintf("http://localhost:%s", port)
 			connectArgs := []string{"attach", url, "--dir", "/workspace", "--password", password}
 

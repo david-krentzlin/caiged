@@ -26,11 +26,11 @@ make install
 Inside the working directory of your project invoke the following: 
 
 ```bash
-caiged . --spin dev             # Smart attach/create in current directory
+caiged run . --spin dev             # Start/connect in current directory
 ```
 
-This creates (or attaches to) a container with OpenCode server running, preconfigured with the dev spin.
-You will be automatically dropped into OpenCode TUI (on your local machine) which connects to the OpenCode server in the container.
+This creates (or connects to) a container with OpenCode server running, preconfigured with the dev spin.
+You will be automatically connected to OpenCode TUI (on your local machine) which connects to the OpenCode server in the container.
 
 
 ### Read the docs
@@ -80,7 +80,7 @@ Let's have a more detailed look at what happens when you create your first conta
 
 ```bash
 cd /path/to/your/project
-caiged . --spin dev
+caiged run . --spin dev
 ```
 
 
@@ -135,7 +135,7 @@ Spins live under `spins/` and define a role-specific environment:
 The build process automatically handles new spins - just create a directory under `spins/<name>/` with the required files and run:
 
 ```bash
-caiged build . --spin <name>
+caiged run . --spin <name>
 ```
 
 See [SPINS.md](SPINS.md) for detailed instructions on creating and contributing spins
@@ -146,12 +146,12 @@ See [SPINS.md](SPINS.md) for detailed instructions on creating and contributing 
 
 **Default - just run it:**
 ```bash
-caiged . --spin dev   # Current directory, dev spin
+caiged run . --spin dev   # Current directory, dev spin
 ```
 
 **Explicit workdir:**
 ```bash
-caiged /path/to/project --spin qa
+caiged run /path/to/project --spin qa
 ```
 
 **Connect to an existing container by project name:**
@@ -169,9 +169,14 @@ caiged session list
 caiged session stop-all
 ```
 
+**Open a shell in a container (for debugging):**
+```bash
+caiged session shell <container-name>
+```
+
 **Force rebuild with latest tools:**
 ```bash
-OPENCODE_VERSION=latest caiged --rebuild-images
+OPENCODE_VERSION=latest caiged run . --spin dev --rebuild-images
 ```
 
 **Pass selected host secrets into the container:**
@@ -179,7 +184,7 @@ OPENCODE_VERSION=latest caiged --rebuild-images
 export JFROG_OIDC_USER=...
 export JFROG_OIDC_TOKEN=...
 
-caiged --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
+caiged run . --spin dev --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 ```
 
 ## Container / Spin Security

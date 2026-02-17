@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func runCommand(args []string, opts RunOptions, isAttach bool) error {
+func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	workdir := args[0]
 	commandArgs := args[1:]
 
@@ -37,7 +37,7 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 	fmt.Println()
 	if alreadyRunning {
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-		fmt.Println(SectionDivider.Render("  🔗 ATTACHING TO EXISTING CONTAINER"))
+		fmt.Println(SectionDivider.Render("  🔗 CONNECTING TO EXISTING CONTAINER"))
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 	} else {
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
@@ -53,12 +53,12 @@ func runCommand(args []string, opts RunOptions, isAttach bool) error {
 	fmt.Printf("  %s\n", HeaderStyle.Render("Reconnect:"))
 	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("caiged connect %s", config.Project)))
 	fmt.Println()
-	fmt.Printf("  %s\n", HeaderStyle.Render("Manual Attach:"))
+	fmt.Printf("  %s\n", HeaderStyle.Render("Manual Connect:"))
 	fmt.Printf("    %s\n", CommandStyle.Render(fmt.Sprintf("opencode attach http://localhost:%d --dir /workspace --password %s", config.OpencodePort, config.OpencodePassword)))
 	fmt.Println(DividerStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 	fmt.Println()
 
-	if opts.DetachOnly && !isAttach {
+	if opts.NoConnect && !forceConnect {
 		return nil
 	}
 

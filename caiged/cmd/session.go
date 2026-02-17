@@ -7,7 +7,7 @@ func newSessionCmd() *cobra.Command {
 		Use:   "session",
 		Short: "Manage OpenCode server sessions and containers",
 	}
-	cmd.AddCommand(newAttachCmd())
+	cmd.AddCommand(newShellCmd())
 	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newStopAllCmd())
 	return cmd

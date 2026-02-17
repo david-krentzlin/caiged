@@ -8,29 +8,20 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "caiged [workdir] [flags]",
+	Use:   "caiged",
 	Short: "Run isolated OpenCode agent spins in Docker",
 	Long: `caiged - Run isolated OpenCode agent spins in Docker
 
-Without a subcommand, caiged will:
-  - Build images if they don't exist (or --rebuild-images is set)
-  - Attach to an existing container for this project/spin if one exists
-  - Create a new container and attach if none exists
+Available commands:
+  run       Start or resume a container with an OpenCode spin
+  connect   Connect to an existing container's OpenCode server
+  session   Manage container sessions (list, stop, shell)
 
 Examples:
-  caiged . --spin qa          # Run/attach to qa spin in current directory
-  caiged connect <project>    # Connect to a project by name (from any directory)
-  caiged build --spin qa      # Build Docker images for qa spin
-  caiged session list         # List all containers`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// If no args provided, default to current directory
-		if len(args) == 0 {
-			args = []string{"."}
-		}
-		// Default behavior: run (which will attach if exists, or create if not)
-		return runCommand(args, runOpts, false)
-	},
+  caiged run . --spin qa      # Run qa spin in current directory
+  caiged connect my-project   # Connect to existing project
+  caiged session list         # List all containers
+  caiged session shell <name> # Open shell in container`,
 }
 
 func Execute() {
@@ -44,11 +35,34 @@ func Execute() {
 	}
 }
 
+func newRunCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "run <workdir>",
+		Short: "Start or resume a container with an OpenCode spin",
+		Long: `Start or resume a container with an OpenCode spin.
+
+This command will:
+  - Build images if they don't exist (or --rebuild-images is set)
+  - Connect to an existing container for this project/spin if one exists
+  - Create a new container and connect if none exists
+
+Examples:
+  caiged run . --spin qa                    # Run qa spin in current directory
+  caiged run /path/to/project --spin dev    # Run dev spin for a specific path
+  caiged run . --spin qa --no-connect       # Start container but don't connect`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCommand(args, runOpts, false)
+		},
+	}
+	addRunFlags(cmd, &runOpts)
+	return cmd
+}
+
 func init() {
 	addCommonFlags(rootCmd)
-	addRunFlags(rootCmd, &runOpts) // Add run flags to root command
 
-	rootCmd.AddCommand(newBuildCmd())
+	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newSessionCmd())
 	rootCmd.AddCommand(newConnectCmd())
 }

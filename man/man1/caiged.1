@@ -3,80 +3,42 @@
 caiged \- Run isolated OpenCode agent spins in Docker
 .SH SYNOPSIS
 .B caiged
-[\fIworkdir\fR] [\fIflags\fR]
-.br
-.B caiged
 \fIcommand\fR [\fIargs\fR] [\fIflags\fR]
 .SH DESCRIPTION
 .B caiged
 runs isolated OpenCode agent environments ("spins") in Docker containers. Each container provides a complete development environment with OpenCode server, mise-managed tools, and your project mounted at /workspace.
-.PP
-When invoked without a subcommand,
-.B caiged
-will build images if they don't exist (or --rebuild-images is set), then intelligently attach to an existing container for the project/spin if one exists, or create a new container if none exists.
-.SH OPTIONS
-.TP
-.B \-\-spin \fIname\fR
-Spin name (required). Spins are isolated environments that can run different agent configurations.
-.TP
-.B \-\-project \fIname\fR
-Override project name for container naming. By default, the project name is derived from the working directory.
-.TP
-.B \-\-repo \fIpath\fR
-Path to caiged repository containing spins/Dockerfile/entrypoint.sh.
-.TP
-.B \-\-rebuild-images
-Force rebuild of base and spin Docker images before running.
-.TP
-.B \-\-disable-docker-sock
-Disable Docker socket mount (prevents container from accessing host Docker).
-.TP
-.B \-\-secret-env \fIVAR\fR
-Pass a host environment variable into the container. Can be specified multiple times for multiple variables (e.g., \-\-secret-env API_KEY \-\-secret-env TOKEN).
-.TP
-.B \-\-secret-env-file \fIpath\fR
-Path to an environment file with secret values to pass into the container.
-.TP
-.B \-\-no-mount-opencode-auth
-Do not mount host OpenCode auth.json (default: mounts read-only).
-.TP
-.B \-\-mount-gh-rw
-Mount host GitHub CLI configuration in read-write mode (default: read-only).
-.TP
-.B \-\-no-mount-gh
-Do not mount host GitHub CLI configuration (default: mounts read-only).
-.TP
-.B \-\-no-attach
-Start the container without attaching to it.
-.TP
-.B \-h, \-\-help
-Show help information.
 .SH COMMANDS
 .TP
-.B build
-Build the base and spin container images. See \fBcaiged-build\fR(1).
+.B run
+Start or resume a container with an OpenCode spin. Builds images if needed, connects to existing container or creates a new one.
 .TP
 .B connect
 Connect to an existing container by project name. See \fBcaiged-connect\fR(1).
 .TP
 .B session
-Manage containers and sessions. See \fBcaiged-session\fR(1).
+Manage containers and sessions (list, stop, shell). See \fBcaiged-session\fR(1).
 .SH EXAMPLES
 .TP
-Run or attach to qa spin in current directory:
-.B caiged . \-\-spin qa
+Run or connect to qa spin in current directory:
+.B caiged run . \-\-spin qa
 .TP
 Rebuild images before running:
-.B caiged . \-\-spin qa \-\-rebuild-images
+.B caiged run . \-\-spin qa \-\-rebuild-images
 .TP
-Create container without attaching:
-.B caiged . \-\-spin qa \-\-no-attach
+Start container without connecting:
+.B caiged run . \-\-spin qa \-\-no-connect
 .TP
 Pass secret environment variables:
-.B caiged . \-\-spin qa \-\-secret-env API_KEY \-\-secret-env DATABASE_URL
+.B caiged run . \-\-spin qa \-\-secret-env API_KEY \-\-secret-env DATABASE_URL
 .TP
 Connect to an existing project from any directory:
 .B caiged connect my-project
+.TP
+List all running containers:
+.B caiged session list
+.TP
+Open a shell in a container for debugging:
+.B caiged session shell <container-name>
 .SH CONTAINER BEHAVIOR
 Containers are named using the format:
 .B caiged-{spin}-{project}
@@ -85,9 +47,9 @@ Containers are named using the format:
 Each container runs an OpenCode server on an auto-assigned port (4096+), accessible via password-protected HTTP. The password is deterministically generated from the container name.
 .PP
 When you run
-.B caiged
-on a project that already has a container, it will attach to the existing container and display:
-.B 🔗 ATTACHING TO EXISTING CONTAINER
+.B caiged run
+on a project that already has a container, it will connect to the existing container and display:
+.B 🔗 CONNECTING TO EXISTING CONTAINER
 .PP
 When creating a new container, it displays:
 .B 🚀 CONTAINER STARTED
@@ -98,8 +60,10 @@ OpenCode authentication file, mounted into containers by default.
 .TP
 .I ~/.config/gh/
 GitHub CLI configuration directory, mounted read-only by default.
+.TP
+.I ~/.config/caiged/salt
+Password generation salt file.
 .SH SEE ALSO
-.BR caiged-build (1),
 .BR caiged-connect (1),
 .BR caiged-session (1),
 .BR docker (1),
