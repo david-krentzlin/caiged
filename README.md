@@ -64,6 +64,46 @@ In my workflows however I found that this is good enough and the filesystem isol
 
 ---
 
+## How is that different to opencode-devcontainers?
+
+[opencode-devcontainers](https://github.com/athal7/opencode-devcontainers) is an OpenCode plugin that provides branch-based workspace isolation using devcontainers or git worktrees. Both tools aim to isolate your agent environments, but they approach the problem differently:
+
+**opencode-devcontainers** (plugin-based approach):
+- Works as an OpenCode plugin that runs inside a single OpenCode session
+- Creates isolated clones/worktrees per branch with auto-assigned ports (13000-13099)
+- Routes commands to different workspaces using `/devcontainer` or `/worktree` commands
+- Focused on multi-branch workflows - great for working on multiple issues simultaneously
+- Requires the agent to manage workspace switching within a session
+- Lighter weight, less overhead per workspace
+
+**caiged** (container-per-project approach):
+- Manages entire containerized OpenCode servers (one container = one project/spin)
+- Each container has its own independent OpenCode server with separate configuration
+- Focused on role-based isolation (dev, qa, security) with tailored AGENTS.md and skills per spin
+- Persistent sessions that survive stop/resume cycles with all installed packages intact
+- Designed for supervised agent workflows where you connect to specific environments
+- Each container is a complete, isolated development environment
+
+**When to use what:**
+
+Use **opencode-devcontainers** if you:
+- Want to work on multiple branches of the same project simultaneously
+- Need lightweight filesystem isolation for quick branch switching
+- Prefer managing everything within a single OpenCode session
+- Want automatic branch workspace management
+
+Use **caiged** if you:
+- Want different agent personas/roles (dev, qa, security) with specialized tooling
+- Need complete environment isolation per project (different dependencies, databases)
+- Want persistent containers that preserve installed tools across sessions
+- Prefer explicit, supervised control over separate containerized environments
+- Want to connect from any directory to running containers by name
+
+**Can they work together?**
+Yes! You could run caiged to create a containerized dev environment with a specific spin, and then use opencode-devcontainers inside that container for branch-based isolation. They solve different layers of the isolation problem.
+
+---
+
 ## Prerequisites
 
 You will need to have the following available on your host system:
@@ -156,22 +196,22 @@ caiged run /path/to/project --spin qa
 
 **Connect to an existing container by project name:**
 ```bash
-caiged connect qa-myproject
+caiged connect <container-name>
 ```
 
 **List all containers with easy-to-copy commands:**
 ```bash
-caiged session list
+caiged containers list
 ```
 
 **Stop everything:**
 ```bash
-caiged session stop-all
+caiged containers stop-all
 ```
 
 **Open a shell in a container (for debugging):**
 ```bash
-caiged session shell <container-name>
+caiged containers shell <container-name>
 ```
 
 **Force rebuild with latest tools:**
