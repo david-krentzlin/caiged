@@ -29,7 +29,7 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
 	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
-	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (contains spins/ and docker/ directories)")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
 	cmd.Flags().StringSliceVar(&opts.SecretEnv, "secret-env", nil, "Pass host secret env var into container (repeatable)")
 	cmd.Flags().StringVar(&opts.SecretEnvFile, "secret-env-file", "", "Path to env file with secret values for container")
@@ -44,7 +44,7 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
 	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
-	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (contains spins/ and docker/ directories)")
 	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
 	cmd.Flags().StringSliceVar(&opts.SecretEnv, "secret-env", nil, "Pass host secret env var into container (repeatable)")
 	cmd.Flags().StringVar(&opts.SecretEnvFile, "secret-env-file", "", "Path to env file with secret values for container")
@@ -57,7 +57,7 @@ func addAttachFlags(cmd *cobra.Command, opts *RunOptions) {
 func addBuildFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
 	cmd.MarkFlagRequired("spin")
-	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (spins/Dockerfile/entrypoint.sh)")
+	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (contains spins/ and docker/ directories)")
 }
 
 func addRebuildImagesFlag(cmd *cobra.Command, opts *RunOptions) {

@@ -19,6 +19,7 @@ var envVarNamePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 type Config struct {
 	WorkdirAbs        string
 	RepoRoot          string
+	DockerDir         string
 	Spin              string
 	SpinDir           string
 	Project           string
@@ -149,6 +150,7 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 	config := Config{
 		WorkdirAbs:        workdirAbs,
 		RepoRoot:          repoRoot,
+		DockerDir:         filepath.Join(repoRoot, "docker"),
 		Spin:              spin,
 		SpinDir:           spinDir,
 		Project:           projectWithSpin,
@@ -247,10 +249,10 @@ func isCaigedRoot(path string) bool {
 	if info, err := os.Stat(spins); err != nil || !info.IsDir() {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(path, "Dockerfile")); err != nil {
+	if _, err := os.Stat(filepath.Join(path, "docker", "Dockerfile")); err != nil {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(path, "entrypoint.sh")); err != nil {
+	if _, err := os.Stat(filepath.Join(path, "docker", "entrypoint.sh")); err != nil {
 		return false
 	}
 	return true

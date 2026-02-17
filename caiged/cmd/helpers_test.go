@@ -14,10 +14,13 @@ func createFakeRepoRoot(t *testing.T) string {
 	if err := os.MkdirAll(filepath.Join(repoRoot, "spins"), 0o755); err != nil {
 		t.Fatalf("mkdir spins: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoRoot, "Dockerfile"), []byte("FROM scratch\n"), 0o644); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoRoot, "docker"), 0o755); err != nil {
+		t.Fatalf("mkdir docker: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoRoot, "docker", "Dockerfile"), []byte("FROM scratch\n"), 0o644); err != nil {
 		t.Fatalf("write Dockerfile: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoRoot, "entrypoint.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(repoRoot, "docker", "entrypoint.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("write entrypoint.sh: %v", err)
 	}
 

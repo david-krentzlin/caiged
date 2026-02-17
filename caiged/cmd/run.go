@@ -93,7 +93,7 @@ func imageExists(image string) bool {
 }
 
 func buildImage(cfg Config, target string) error {
-	args := []string{"build", "--target", target, "-t"}
+	args := []string{"build", "--target", target, "-f", filepath.Join(cfg.DockerDir, "Dockerfile"), "-t"}
 	if target == "base" {
 		args = append(args, cfg.BaseImage)
 	} else {

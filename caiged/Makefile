@@ -6,6 +6,19 @@ INSTALL_BIN ?= $(INSTALL_DIR)/caiged
 MAN_DIR ?= $(HOME)/.local/share/man/man1
 MAN_SOURCE_DIR := $(REPO_ROOT)/man/man1
 
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  make build              - Build the caiged binary"
+	@echo "  make install            - Install caiged and man pages"
+	@echo "  make uninstall          - Uninstall caiged and man pages"
+	@echo "  make test               - Run unit tests"
+	@echo "  make test-integration   - Run integration tests (requires Docker)"
+	@echo "  make test-all           - Run all tests (unit + integration)"
+	@echo "  make clean              - Clean build artifacts"
+
+.DEFAULT_GOAL := help
+
 .PHONY: build
 build:
 	go -C $(CAIGED_DIR) build -ldflags "-X github.com/david-krentzlin/caiged/caiged/cmd.defaultRepoPath=$(REPO_ROOT)" -o $(BUILD_BIN) .
@@ -29,3 +42,20 @@ uninstall:
 	rm -f $(MAN_DIR)/caiged-port.1
 	rm -f $(MAN_DIR)/caiged-session.1
 	@echo "Uninstalled caiged and man pages"
+
+.PHONY: test
+test:
+	go test ./internal/... -v
+
+.PHONY: test-integration
+test-integration:
+	@echo "Running integration tests (requires Docker)..."
+	go test -tags=integration ./integration/... -v -timeout 5m
+
+.PHONY: test-all
+test-all: test test-integration
+
+.PHONY: clean
+clean:
+	rm -f $(BUILD_BIN)
+	@echo "Cleaned build artifacts"

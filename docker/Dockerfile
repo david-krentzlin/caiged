@@ -53,10 +53,10 @@ RUN case "$ARCH" in \
     "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-${MISE_PKG_ARCH}" \
   && chmod +x /usr/local/bin/mise
 
-COPY config/target_mise.toml /etc/mise.toml
-COPY config/tmux.conf /etc/tmux.conf
-COPY config/zshrc /etc/zsh/zshrc
-COPY config/zprofile /etc/zsh/zprofile
+COPY docker/config/target_mise.toml /etc/mise.toml
+COPY docker/config/tmux.conf /etc/tmux.conf
+COPY docker/config/zshrc /etc/zsh/zshrc
+COPY docker/config/zprofile /etc/zsh/zprofile
 
 RUN mkdir -p /root/.config/mise \
   && cp /etc/mise.toml /root/.config/mise/config.toml \
@@ -68,9 +68,9 @@ RUN mkdir -p /root/.config/mise \
 
 WORKDIR /workspace
 
-COPY entrypoint.sh /usr/local/bin/agent-entrypoint
-COPY scripts/start-opencode.sh /usr/local/bin/start-opencode
-COPY scripts/comma-help.sh /usr/local/bin/,help
+COPY docker/entrypoint.sh /usr/local/bin/agent-entrypoint
+COPY docker/scripts/start-opencode.sh /usr/local/bin/start-opencode
+COPY docker/scripts/comma-help.sh /usr/local/bin/,help
 RUN chmod +x /usr/local/bin/agent-entrypoint \
   /usr/local/bin/start-opencode \
   /usr/local/bin/,help
