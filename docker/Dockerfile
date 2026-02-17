@@ -1,6 +1,5 @@
-FROM debian:bookworm-slim AS base
+FROM alpine:3.20 AS base
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG MISE_VERSION=2026.2.13
 ARG GH_VERSION=2.86.0
 ARG OPENCODE_VERSION=latest
@@ -15,46 +14,43 @@ ENV OPENCODE_VERSION=${OPENCODE_VERSION}
 ENV TERM=xterm-256color
 ENV COLORTERM=truecolor
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
+# Install runtime dependencies and build dependencies in separate layers
+RUN apk add --no-cache \
     bash \
-    build-essential \
     ca-certificates \
     curl \
-    docker.io \
-    fd-find \
     git \
-    gnupg \
     jq \
-    ncurses-term \
+    libgcc \
+    libstdc++ \
+    ncurses-terminfo \
     openssh-client \
-    python3 \
-    python3-pip \
     ripgrep \
     tmux \
-    tree \
     unzip \
-    xz-utils \
+    xz \
     zsh \
-  && rm -rf /var/lib/apt/lists/*
+  && apk add --no-cache --virtual .docker-deps docker-cli \
+  && apk add --no-cache --virtual .build-deps \
+    make \
+    autoconf
 
 RUN case "$ARCH" in \
     amd64) \
       GH_PKG_ARCH="amd64"; \
-      MISE_PKG_ARCH="linux-x64"; \
+      MISE_PKG_ARCH="linux-x64-musl"; \
       ;; \
     arm64) \
       GH_PKG_ARCH="arm64"; \
-      MISE_PKG_ARCH="linux-arm64"; \
+      MISE_PKG_ARCH="linux-arm64-musl"; \
       ;; \
     *) echo "Unsupported arch: $ARCH (supported: amd64, arm64)" >&2; exit 1 ;; \
   esac \
-  && curl -sSLo /tmp/gh.deb \
-    "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_PKG_ARCH}.deb" \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends /tmp/gh.deb \
-  && rm -f /tmp/gh.deb \
-  && rm -rf /var/lib/apt/lists/* \
+  && curl -sSLo /tmp/gh.tar.gz \
+    "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_PKG_ARCH}.tar.gz" \
+  && tar -xzf /tmp/gh.tar.gz -C /tmp \
+  && mv /tmp/gh_${GH_VERSION}_linux_${GH_PKG_ARCH}/bin/gh /usr/local/bin/ \
+  && rm -rf /tmp/gh* \
   && curl -sSLo /usr/local/bin/mise \
     "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-${MISE_PKG_ARCH}" \
   && chmod +x /usr/local/bin/mise
@@ -70,7 +66,8 @@ RUN mkdir -p /root/.config/mise \
   && mkdir -p "${MISE_DATA_DIR}" \
   && MISE_YES=1 mise install \
   && mise reshim \
-  && if [ "$OPENCODE_VERSION" = "latest" ]; then bun add -g opencode-ai; else bun add -g "opencode-ai@${OPENCODE_VERSION}"; fi
+  && if [ "$OPENCODE_VERSION" = "latest" ]; then bun add -g opencode-ai; else bun add -g "opencode-ai@${OPENCODE_VERSION}"; fi \
+  && apk del .build-deps
 
 WORKDIR /workspace
 
