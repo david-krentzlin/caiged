@@ -6,6 +6,10 @@ The goal is to restrict what your agent can do while maintaining relatively good
 It allows you to create specially tailored OpenCode instances, that have their own AGENTS.md, and skills pre-configured,
 which I call spins. This way you can have development, qa, security review etc. done with the tools you need in an easy way.
 
+## Caution
+
+This is in active development and things may change rapidly. 
+
 ## Quickstart
 
 ### Install
@@ -207,6 +211,13 @@ OpenCode authentication behavior:
 ```bash
 caiged . --spin dev --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 ```
+
+## Is this vibe-coded?
+
+It is built using agentic coding but with oversight and I did multiple rounds of refactoring along the way.
+But at its core it's built mostly by an agent, to be fast and try ideas.
+Iff this becomes something that turns out to be viable, I will probably rewrite bigger parts manually and make sure
+I know every bit of it.
 
 ## Missing features
 
