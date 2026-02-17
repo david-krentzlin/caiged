@@ -79,6 +79,14 @@ func (c *Client) ContainerStop(name string) error {
 	})
 }
 
+// ContainerStart starts a stopped container
+func (c *Client) ContainerStart(name string) error {
+	return c.executor.Run("docker", []string{"start", name}, exec.RunOptions{
+		Stdout: c.stdout,
+		Stderr: c.stderr,
+	})
+}
+
 // ContainerExec executes a command in a running container interactively
 func (c *Client) ContainerExec(name string, command []string, interactive bool) error {
 	args := []string{"exec"}

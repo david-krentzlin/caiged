@@ -31,8 +31,9 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 		return runContainerCommand(config, dockerClient, commandArgs)
 	}
 
-	// Check if container is already running
+	// Check container state
 	alreadyRunning := dockerClient.ContainerIsRunning(config.ContainerName)
+	stoppedExists := !alreadyRunning && dockerClient.ContainerExists(config.ContainerName)
 
 	if err := startContainerDetached(config, dockerClient); err != nil {
 		return err
@@ -43,6 +44,10 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	if alreadyRunning {
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 		fmt.Println(SectionDivider.Render("  🔗 CONNECTING TO EXISTING CONTAINER"))
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+	} else if stoppedExists {
+		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
+		fmt.Println(SectionDivider.Render("  🔄 RESUMED PERSISTENT SESSION"))
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
 	} else {
 		fmt.Println(SectionDivider.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
@@ -120,7 +125,8 @@ func buildImage(cfg Config, client *docker.Client, target string) error {
 func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	args := []string{"run"}
 	if mode == dockerRunDetached {
-		args = append(args, "-d", "--rm", "--name", cfg.ContainerName)
+		// Note: removed --rm to enable persistent sessions
+		args = append(args, "-d", "--name", cfg.ContainerName)
 		args = append(args, "--label", fmt.Sprintf("opencode.port=%d", cfg.OpencodePort))
 	} else {
 		args = append(args, "--rm", "-it")
@@ -172,13 +178,18 @@ func wrapNetworkRunError(cfg Config, err error) error {
 }
 
 func startContainerDetached(cfg Config, client *docker.Client) error {
+	// If container is already running, nothing to do
 	if client.ContainerIsRunning(cfg.ContainerName) {
 		return nil
 	}
+
+	// If container exists but is stopped, restart it
 	if client.ContainerExists(cfg.ContainerName) {
-		_ = client.ContainerRemove(cfg.ContainerName)
+		fmt.Printf("%s\n", InfoStyle.Render("🔄 Resuming existing container (persistent session)..."))
+		return client.ContainerStart(cfg.ContainerName)
 	}
 
+	// Container doesn't exist, create a new one
 	args := dockerRunArgs(cfg, dockerRunDetached)
 	args = append(args,
 		"-e", fmt.Sprintf("AGENT_SPIN=%s", cfg.Spin),

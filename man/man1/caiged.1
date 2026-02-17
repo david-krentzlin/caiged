@@ -46,12 +46,20 @@ Containers are named using the format:
 .PP
 Each container runs an OpenCode server on an auto-assigned port (4096+), accessible via password-protected HTTP. The password is deterministically generated from the container name.
 .PP
+.B Persistent Sessions:
+Containers are preserved when stopped, allowing you to resume work with all installed packages and changes intact. This enables workflows where you can stop a session, install tools, and resume later without losing your configuration.
+.PP
 When you run
 .B caiged run
-on a project that already has a container, it will connect to the existing container and display:
+on a project:
+.IP \(bu 2
+If a container is already running:
 .B 🔗 CONNECTING TO EXISTING CONTAINER
-.PP
-When creating a new container, it displays:
+.IP \(bu 2
+If a stopped container exists:
+.B 🔄 RESUMED PERSISTENT SESSION
+.IP \(bu 2
+If no container exists:
 .B 🚀 CONTAINER STARTED
 .SH FILES
 .TP
