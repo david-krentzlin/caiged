@@ -6,7 +6,7 @@ type RunOptions struct {
 	Spin                string
 	Project             string
 	Repo                string
-	DisableDockerSock   bool
+	EnableDockerSock    bool
 	SecretEnv           []string
 	SecretEnvFile       string
 	NoMountOpenCodeAuth bool
@@ -30,7 +30,7 @@ func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (contains spins/ and docker/ directories)")
-	cmd.Flags().BoolVar(&opts.DisableDockerSock, "disable-docker-sock", false, "Disable Docker socket mount")
+	cmd.Flags().BoolVar(&opts.EnableDockerSock, "enable-docker-sock", false, "Enable Docker socket mount (docker-in-docker)")
 	cmd.Flags().StringSliceVar(&opts.SecretEnv, "secret-env", nil, "Pass host secret env var into container (repeatable)")
 	cmd.Flags().StringVar(&opts.SecretEnvFile, "secret-env-file", "", "Path to env file with secret values for container")
 	cmd.Flags().BoolVar(&opts.NoMountOpenCodeAuth, "no-mount-opencode-auth", false, "Do not mount host OpenCode auth.json")

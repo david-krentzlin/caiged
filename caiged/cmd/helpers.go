@@ -29,7 +29,7 @@ type Config struct {
 	SpinImage         string
 	ContainerName     string
 	ContainerShell    string
-	DisableDockerSock bool
+	EnableDockerSock  bool
 	MountGH           bool
 	MountGHRW         bool
 	MountGHPath       string
@@ -160,7 +160,7 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		SpinImage:         fmt.Sprintf("%s:%s", imagePrefix, spin),
 		ContainerName:     containerName,
 		ContainerShell:    containerShell,
-		DisableDockerSock: opts.DisableDockerSock,
+		EnableDockerSock:  opts.EnableDockerSock,
 		MountGH:           opts.MountGH,
 		MountGHRW:         opts.MountGHRW,
 		MountGHPath:       mountGHPath,

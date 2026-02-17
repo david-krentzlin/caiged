@@ -60,9 +60,9 @@ some other niceties like making sure you git configuration (username etc. are pr
 which means that it's not possible to access files that the docker daemon can access.**
 
 Caiged, makes a different trade-off. It does not use a full vm but just a docker container, which is lighter on resource usage.
-**It provides docker access through a mount of the host docker socket.** This means your agent will see other docker containers.
-If that is not acceptable for you, please use docker sandboxes or something else.
-In my workflows however I found that this is good enough and the filesystem isolation is what I really care about.
+**By default, docker socket access is disabled for security.** You can optionally enable it with the `--enable-docker-sock` flag if your workflow requires docker-in-docker capabilities.
+When enabled, the agent will see other docker containers. If that is not acceptable for you, please use docker sandboxes or something else.
+In my workflows however I found that filesystem isolation is what I really care about.
 (More than once have I seen the agent wander off into the distance on my filesystem way outside the current working directory.)
 
 ---
@@ -235,7 +235,7 @@ caiged run . --spin dev --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOK
 - **Network**: uses bridge networking with port mapping
   - Bridge networking with port mapping allows secure OpenCode server access from host
   - Each container gets a unique port (starting at 4096) mapped to container port 4096
-- **Docker socket**: mounted by default; disable with `--disable-docker-sock`
+- **Docker socket**: disabled by default for security; enable with `--enable-docker-sock` if docker-in-docker is required
 - **GitHub config**: mounted read-only from `~/.config/gh`; make read-write with `--mount-gh-rw`
 - **OpenCode auth reuse**: host `~/.local/share/opencode/auth.json` is mounted read-only when available; disable with `--no-mount-opencode-auth`
 - **Secret env passthrough**: only explicitly listed host env vars are passed to the container (`--secret-env NAME`, repeatable)

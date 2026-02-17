@@ -139,7 +139,7 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	// Set hostname to container name for better shell identification
 	args = append(args, "--hostname", cfg.ContainerName)
 
-	if !cfg.DisableDockerSock {
+	if cfg.EnableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
 	}
 	if cfg.MountGH && cfg.MountGHPath != "" {

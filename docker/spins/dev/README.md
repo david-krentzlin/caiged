@@ -16,4 +16,4 @@ In-container helpers:
 
 Notes:
 - Network is enabled by default unless `--disable-network` is used
-- Docker socket is enabled by default unless `--disable-docker-sock` is used
+- Docker socket is disabled by default for security; enable with `--enable-docker-sock` if docker-in-docker is required
