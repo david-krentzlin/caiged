@@ -79,15 +79,15 @@ OpenCode loads skills from this directory. Each `SKILL.md` defines:
 
 **Example skill structure:**
 ```markdown
-# Skill: <Skill Name>
+---
+name: security review
+description: Evaluate the change for security risks using layered controls and explicit threat modeling.
+---
 
-## Description
-What this skill does...
-
-## When to Use
+## When to use
 Situations where this skill applies...
 
-## Usage
+## What to do
 How to invoke and what to expect...
 ```
 
@@ -121,142 +121,13 @@ Spin-specific documentation covering:
 
 ## Creating a New Spin
 
-### Step 1: Create the Directory Structure
-
-```bash
-cd /path/to/caiged
-mkdir -p spins/<spin-name>/{skills,mcp}
-touch spins/<spin-name>/AGENTS.md
-touch spins/<spin-name>/README.md
-touch spins/<spin-name>/skills/README.md
-touch spins/<spin-name>/mcp/README.md
-```
-
-### Step 2: Write Agent Instructions
-
-Edit `spins/<spin-name>/AGENTS.md` with:
-- Clear role definition
-- Hard rules and constraints
-- Process and workflows
-- Decision criteria
-
-Use `spins/qa/AGENTS.md` as a template.
-
-### Step 3: Add Skills (Optional)
-
-For each skill:
-
-```bash
-mkdir -p spins/<spin-name>/skills/<skill-name>
-touch spins/<spin-name>/skills/<skill-name>/SKILL.md
-```
-
-Write the skill definition in `SKILL.md`.
-
-### Step 4: Configure MCP Servers (Optional)
-
-If your spin needs MCP servers:
-
-```bash
-touch spins/<spin-name>/mcp/config.json
-```
-
-Define server configurations in JSON format.
-
-### Step 5: Document the Spin
-
-Edit `spins/<spin-name>/README.md` with:
-- Purpose and use cases
-- Key features
-- Setup instructions
-- Examples
-
-## Build Process (Automatic)
-
-**No code changes required!** The build process automatically handles new spins:
-
-1. **CLI discovers spin**: When you run `caiged run ... --spin <name>` (or `caiged build ... --spin <name>`), the CLI checks for `spins/<name>/`
-2. **Docker builds**: `Dockerfile` uses `ARG SPIN` and `COPY spins/${SPIN}/` to copy files
-3. **Container setup**: `entrypoint.sh` copies spin assets to `/root/.config/opencode/`:
-   - `AGENTS.md` → `/root/.config/opencode/AGENTS.md`
-   - `skills/` → `/root/.config/opencode/skills/`
-   - `mcp/` → `/root/.config/opencode/mcp/`
+Creating a new spin is just a matter of creating the directory structure and the files you want to have availble.
 
 ### Testing Your Spin
 
 ```bash
-# Build the spin image
-caiged build . --spin <spin-name>
-
 # Run the spin
 caiged run . --spin <spin-name>
-```
-
-### Example: Adding an "engineer" Spin
-
-```bash
-cd /path/to/caiged
-
-# Create structure
-mkdir -p spins/engineer/{skills,mcp}
-
-# Write instructions
-cat > spins/engineer/AGENTS.md <<'EOF'
-# Agent: Software Engineer
-
-## Purpose
-Implement features, fix bugs, refactor code.
-
-## Hard Rules
-1. Write tests for all new code
-2. Follow existing code style
-3. No breaking changes without approval
-
-## Process
-1. Understand requirements
-2. Design solution
-3. Implement with tests
-4. Verify locally
-EOF
-
-# Document the spin
-cat > spins/engineer/README.md <<'EOF'
-# Engineer Spin
-
-Focused on feature implementation and bug fixes.
-Includes standard engineering workflows.
-EOF
-
-# Build and run
-caiged build . --spin engineer
-caiged run . --spin engineer
-```
-
-## Spin Design Guidelines
-
-### Good Spin Characteristics
-
-✅ **Single, clear purpose**: QA, engineering, review, security, etc.  
-✅ **Well-defined constraints**: What can/can't this agent do?  
-✅ **Actionable workflows**: Step-by-step processes  
-✅ **Measurable outcomes**: Clear success/failure criteria  
-✅ **Focused skills**: Only include relevant capabilities  
-
-### Anti-patterns
-
-❌ **Kitchen sink spins**: Trying to do everything  
-❌ **Vague instructions**: "Help with coding tasks"  
-❌ **Missing constraints**: No guardrails on agent behavior  
-❌ **Overlapping purposes**: Multiple spins doing the same thing  
-
-## Maintenance
-
-### Updating a Spin
-
-Edit files in `spins/<name>/`, then rebuild:
-
-```bash
-caiged build . --spin <name>
 ```
 
 ### Removing a Spin
@@ -266,32 +137,14 @@ rm -rf spins/<name>
 docker rmi caiged:<name>
 ```
 
-## Contributing Spins
-
-When contributing a new spin:
-
-1. Follow the directory structure above
-2. Include comprehensive `AGENTS.md` with clear examples
-3. Document all skills with usage instructions
-4. Test the spin on a real project
-5. Submit a PR with:
-   - Spin implementation in `spins/<name>/`
-   - Updated `README.md` listing the new spin
-   - Example usage in the PR description
 
 ## FAQ
 
-**Q: Can I have spin-specific tools/dependencies?**  
+**Q: Can I have spin-specific tools/dependencies?**
 A: Not directly. Spins share the base image. For tool differences, use conditional logic in scripts or skills.
 
-**Q: Can spins share skills?**  
+**Q: Can spins share skills?**
 A: Skills are copied per-spin. To share, symlink or copy common skills into multiple spin directories.
 
-**Q: How do I pass data between spins?**  
+**Q: How do I pass data between spins?**
 A: Spins run in separate containers. Share data via the mounted workspace or external services.
-
-**Q: Can I use languages other than Markdown for instructions?**  
-A: OpenCode expects Markdown. Use code blocks for examples in other languages.
-
-**Q: Do I need to restart containers when updating skills?**  
-A: Yes. Run `caiged session restart . --spin <name>` to rebuild and restart.
