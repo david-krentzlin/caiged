@@ -130,6 +130,8 @@ func dockerRunArgs(cfg Config, mode dockerRunMode) []string {
 	// Always enable networking - OpenCode needs network access for LLM APIs
 	args = append(args, "--network=bridge")
 	args = append(args, "-p", fmt.Sprintf("%d:4096", cfg.OpencodePort))
+	// Set hostname to container name for better shell identification
+	args = append(args, "--hostname", cfg.ContainerName)
 
 	if !cfg.DisableDockerSock {
 		args = append(args, "-v", "/var/run/docker.sock:/var/run/docker.sock")
