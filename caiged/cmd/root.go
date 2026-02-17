@@ -19,7 +19,7 @@ Available commands:
 
 Examples:
   caiged run . --spin qa      # Run qa spin in current directory
-  caiged connect my-project   # Connect to existing project
+  caiged connect session-name   # Connect to existing session
   caiged session list         # List all containers
   caiged session shell <name> # Open shell in container`,
 }

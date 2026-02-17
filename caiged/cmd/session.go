@@ -9,6 +9,7 @@ func newSessionCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newShellCmd())
 	cmd.AddCommand(newListCmd())
+	cmd.AddCommand(newStopCmd())
 	cmd.AddCommand(newStopAllCmd())
 	return cmd
 }
