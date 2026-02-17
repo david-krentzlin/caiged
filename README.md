@@ -10,7 +10,6 @@ which I call spins. This way you can have development, qa, security review etc. 
 
 ### Install
 
-```
 ```bash
 git clone https://github.com/david-krentzlin/caiged.git ~/.caiged
 cd ~/.caiged
