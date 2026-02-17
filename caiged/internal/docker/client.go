@@ -50,7 +50,7 @@ type Image struct {
 
 // ContainerExists checks if a container exists (running or stopped)
 func (c *Client) ContainerExists(name string) bool {
-	err := c.executor.Run("docker", []string{"inspect", name}, exec.RunOptions{})
+	_, err := c.executor.Output("docker", []string{"inspect", name})
 	return err == nil
 }
 
@@ -264,6 +264,6 @@ func (c *Client) ImageBuild(cfg BuildConfig) error {
 
 // ImageExists checks if an image exists
 func (c *Client) ImageExists(name string) bool {
-	err := c.executor.Run("docker", []string{"image", "inspect", name}, exec.RunOptions{})
+	_, err := c.executor.Output("docker", []string{"image", "inspect", name})
 	return err == nil
 }
