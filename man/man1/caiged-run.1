@@ -6,7 +6,18 @@ caiged-run \- Start or resume a containerized OpenCode development environment
 [\fIoptions\fR] \fIworkdir\fR [\fIcommand\fR [\fIargs\fR...]]
 .SH DESCRIPTION
 .B caiged run
-creates or resumes a containerized OpenCode development environment for the specified working directory. If a container already exists for the project, it will be resumed. Otherwise, a new container is created with the OpenCode server.
+creates or resumes a containerized OpenCode development environment for the specified working directory. Containers persist across stop/start cycles, preserving all installed packages, configuration changes, and files.
+.PP
+The command handles three container states:
+.IP \(bu 2
+.B Running
+\- If the container is already running, connects to it
+.IP \(bu 2
+.B Stopped
+\- If the container exists but is stopped, resumes it with all previous changes intact
+.IP \(bu 2
+.B Non-existent
+\- If no container exists, creates a new one with the OpenCode server
 .PP
 By default, after starting or resuming the container, the command automatically connects to the OpenCode TUI client. This behavior can be disabled with the
 .B --no-connect
@@ -100,9 +111,11 @@ If images don't exist (or
 .B --build
 is specified), they are built automatically
 .IP 2. 3
-If a container already exists for the project, it is resumed
+If a container is already running for the project, connects to it
 .IP 3. 3
-If no container exists, a new one is created with:
+If a stopped container exists, resumes it (preserving all changes)
+.IP 4. 3
+If no container exists, creates a new one with:
 .RS 6
 .IP \(bu 2
 Working directory mounted at
@@ -113,13 +126,20 @@ OpenCode server running on a random available port
 Password authentication enabled
 .IP \(bu 2
 GPU passthrough if requested
+.IP \(bu 2
+Hostname set to match the container name
 .RE
-.IP 4. 3
-Connection information is displayed
 .IP 5. 3
+Connection information is displayed
+.IP 6. 3
 OpenCode TUI is launched (unless
 .B --no-connect
 is used)
+.PP
+.B Persistent Sessions:
+Containers are not removed when stopped. All installed packages, configuration changes, and files persist. Use
+.B caiged containers stop \-\-remove
+to explicitly remove a container when it's no longer needed.
 .SH ENVIRONMENT
 .TP
 .B DOCKER_HOST
@@ -134,7 +154,7 @@ Optional configuration file for project-specific settings (not yet implemented).
 .SH SEE ALSO
 .BR caiged (1),
 .BR caiged-connect (1),
-.BR caiged-session (1),
+.BR caiged-containers (1),
 .BR opencode (1),
 .BR docker (1)
 .SH AUTHOR

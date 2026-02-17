@@ -13,15 +13,15 @@ var rootCmd = &cobra.Command{
 	Long: `caiged - Run isolated OpenCode agent spins in Docker
 
 Available commands:
-  run       Start or resume a container with an OpenCode spin
-  connect   Connect to an existing container's OpenCode server
-  session   Manage container sessions (list, stop, shell)
+  run         Start or resume a container with an OpenCode spin
+  connect     Connect to an existing container's OpenCode server
+  containers  Manage containers (list, stop, shell)
 
 Examples:
-  caiged run . --spin qa      # Run qa spin in current directory
-  caiged connect session-name   # Connect to existing session
-  caiged session list         # List all containers
-  caiged session shell <name> # Open shell in container`,
+  caiged run . --spin qa           # Run qa spin in current directory
+  caiged connect <container-name>  # Connect to existing container
+  caiged containers list           # List all containers
+  caiged containers shell <name>   # Open shell in container`,
 }
 
 func Execute() {
@@ -63,6 +63,6 @@ func init() {
 	addCommonFlags(rootCmd)
 
 	rootCmd.AddCommand(newRunCmd())
-	rootCmd.AddCommand(newSessionCmd())
+	rootCmd.AddCommand(newContainersCmd())
 	rootCmd.AddCommand(newConnectCmd())
 }

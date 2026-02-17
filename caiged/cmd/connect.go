@@ -13,48 +13,23 @@ import (
 
 func newConnectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "connect <project-name>",
+		Use:   "connect <container-name>",
 		Short: "Connect to an OpenCode server with the TUI client",
-		Long:  "Launch the OpenCode TUI client connected to a running container by project name (e.g., 'my-app' or 'code-myproject')",
+		Long:  "Launch the OpenCode TUI client connected to a running container by container name (e.g., 'caiged-qa-my-project')",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			projectSlug := slugifyProjectName(args[0])
-			prefix := envOrDefault("IMAGE_PREFIX", "caiged")
+			containerName := args[0]
 
 			executor := exec.NewRealExecutor()
 			dockerClient := docker.NewClient(executor)
 
-			// Container names are in format: {prefix}-{spin}-{project}
-			// We search for any container that ends with the project slug
-			containers, err := dockerClient.ContainerList(fmt.Sprintf("name=-%s$", projectSlug), "{{.Names}}")
-			if err != nil {
-				return fmt.Errorf("search containers: %w", err)
+			// Verify container exists and is running
+			if !dockerClient.ContainerExists(containerName) {
+				return fmt.Errorf("container '%s' does not exist", containerName)
 			}
 
-			containers = filterNonEmpty(containers)
-			if len(containers) == 0 {
-				return fmt.Errorf("no running container found for project: %s", args[0])
-			}
-
-			// Filter to only containers with the correct prefix
-			var matchingContainers []string
-			for _, name := range containers {
-				if strings.HasPrefix(name, prefix+"-") {
-					matchingContainers = append(matchingContainers, name)
-				}
-			}
-
-			if len(matchingContainers) == 0 {
-				return fmt.Errorf("no running container found for project: %s", args[0])
-			}
-
-			// If multiple matches, prefer the default "qa" spin
-			containerName := matchingContainers[0]
-			for _, name := range matchingContainers {
-				if strings.HasPrefix(name, prefix+"-qa-") {
-					containerName = name
-					break
-				}
+			if !dockerClient.ContainerIsRunning(containerName) {
+				return fmt.Errorf("container '%s' is not running (resume with: caiged run .)", containerName)
 			}
 
 			// Get the port from the container label

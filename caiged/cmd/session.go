@@ -2,10 +2,10 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-func newSessionCmd() *cobra.Command {
+func newContainersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "session",
-		Short: "Manage OpenCode server sessions and containers",
+		Use:   "containers",
+		Short: "Manage caiged containers",
 	}
 	cmd.AddCommand(newShellCmd())
 	cmd.AddCommand(newListCmd())

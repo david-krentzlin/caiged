@@ -62,8 +62,8 @@ func newListCmd() *cobra.Command {
 						}
 					}
 					fmt.Println()
-					fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), projectName)
-					fmt.Printf("     %s    caiged session shell %s\n", LabelStyle.Render("Shell:"), containerName)
+					fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), containerName)
+					fmt.Printf("     %s    caiged containers shell %s\n", LabelStyle.Render("Shell:"), containerName)
 					fmt.Println(DividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))
 				}
 				fmt.Println()
@@ -123,8 +123,8 @@ func newListCmd() *cobra.Command {
 
 					// Only show connect command for running containers
 					if isRunning {
-						fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), projectName)
-						fmt.Printf("     %s    caiged session shell %s\n", LabelStyle.Render("Shell:"), containerName)
+						fmt.Printf("     %s  caiged connect %s\n", LabelStyle.Render("Connect:"), containerName)
+						fmt.Printf("     %s    caiged containers shell %s\n", LabelStyle.Render("Shell:"), containerName)
 					}
 					fmt.Printf("     %s   docker rm -f %s\n", LabelStyle.Render("Remove:"), containerName)
 					fmt.Println(DividerStyle.Render("  ──────────────────────────────────────────────────────────────────"))

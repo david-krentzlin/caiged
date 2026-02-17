@@ -3,43 +3,51 @@
 caiged-connect \- Connect to an OpenCode server with the TUI client
 .SH SYNOPSIS
 .B caiged connect
-\fIproject-name\fR
+\fIcontainer-name\fR
 .SH DESCRIPTION
 .B caiged connect
-launches the OpenCode TUI client connected to a running container by project name. This allows you to connect to any running caiged container from any directory without needing to navigate to the project directory.
+launches the OpenCode TUI client connected to a running container by container name. This allows you to connect to any running caiged container from any directory.
 .PP
-The command searches for a running container matching the project name, retrieves its connection information, and launches
+The command verifies the container exists and is running, retrieves its connection information, and launches
 .BR opencode\ attach
 with the appropriate URL and credentials.
 .SH ARGUMENTS
 .TP
-.I project-name
-The project name or slug to connect to. This can be the full project name (e.g., "my-app") or any portion that uniquely identifies the container.
+.I container-name
+The full container name to connect to (e.g., "caiged-qa-my-app"). Use
+.B caiged containers list
+to see all available container names.
 .SH EXAMPLES
 .TP
-Connect to a project named "my-app":
-.B caiged connect my-app
+Connect to a container:
+.B caiged connect caiged-qa-my-app
 .TP
-Connect to a project with a complex name:
-.B caiged connect code-myproject
+Connect to a dev spin container:
+.B caiged connect caiged-dev-my-project
 .SH CONTAINER NAMING
 Containers are named using the format:
 .B caiged-{spin}-{project}
 .PP
-The connect command searches for containers where the project portion matches the provided argument.
+The full container name must be provided to the connect command. Use
+.B caiged containers list
+to see all container names.
 .SH ERRORS
 .TP
-.B no running container found for project
-No container matching the provided project name was found. Use
-.B caiged session list
-to see all running containers.
+.B container does not exist
+No container with the provided name was found. Use
+.B caiged containers list
+to see all available containers.
+.TP
+.B container is not running
+The container exists but is stopped. Resume it with
+.B caiged run .
+from the project directory.
 .TP
 .B no port found for container
 The container exists but doesn't have port information in its labels. This may indicate an older container using legacy configuration.
 .SH SEE ALSO
 .BR caiged (1),
-.BR caiged-port (1),
-.BR caiged-session (1),
+.BR caiged-containers (1),
 .BR opencode (1)
 .SH AUTHOR
 Written by the caiged development team.

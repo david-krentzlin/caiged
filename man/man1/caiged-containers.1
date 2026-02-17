@@ -1,12 +1,12 @@
-.TH CAIGED-SESSION 1 "February 2026" "caiged" "User Commands"
+.TH CAIGED-CONTAINERS 1 "February 2026" "caiged" "User Commands"
 .SH NAME
-caiged-session \- Manage OpenCode server sessions and containers
+caiged-containers \- Manage caiged Docker containers
 .SH SYNOPSIS
-.B caiged session
+.B caiged containers
 \fIsubcommand\fR [\fIargs\fR]
 .SH DESCRIPTION
-.B caiged session
-provides commands for managing running caiged containers and their associated OpenCode server sessions.
+.B caiged containers
+provides commands for managing caiged Docker containers.
 .SH SUBCOMMANDS
 .TP
 .B list
@@ -15,19 +15,28 @@ List all active caiged containers with their status, connection information, ser
 .B shell \fIcontainer-name\fR
 Open an interactive shell in a container for debugging. Takes a container name or ID to connect to.
 .TP
+.B stop \fIcontainer-name\fR [\fB\-\-remove\fR|\fB\-r\fR]
+Stop a specific caiged container. By default, the container is preserved and can be resumed later with all installed packages and changes intact. Use the \fB\-\-remove\fR or \fB\-r\fR flag to stop and remove the container.
+.TP
 .B stop-all
 Stop all caiged containers. This forcefully removes all containers managed by caiged.
 .SH EXAMPLES
 .TP
 List all running containers:
-.B caiged session list
+.B caiged containers list
 .TP
 Open a shell in a container by name:
-.B caiged session shell caiged-qa-my-app
+.B caiged containers shell caiged-qa-my-app
+.TP
+Stop a container (preserves it for resuming):
+.B caiged containers stop caiged-qa-my-app
+.TP
+Stop and remove a container:
+.B caiged containers stop \-\-remove caiged-qa-my-app
 .TP
 Stop all containers:
-.B caiged session stop-all
-.SH SESSION LIST OUTPUT
+.B caiged containers stop-all
+.SH CONTAINER LIST OUTPUT
 The
 .B list
 subcommand displays containers in a formatted table with:
@@ -59,6 +68,16 @@ The
 subcommand connects to the container's shell (default: /bin/zsh) for debugging and maintenance tasks. This is different from the
 .B caiged connect
 command which connects to the OpenCode TUI client.
+.SH STOP BEHAVIOR
+The
+.B stop
+subcommand stops a specific container by default without removing it. This allows you to preserve all installed packages, configuration changes, and files. To resume a stopped container, simply run
+.B caiged run
+again from the same directory. Use the
+.B \-\-remove
+(or
+.BR \-r )
+flag to stop and remove the container if you no longer need it.
 .SH STOP-ALL BEHAVIOR
 The
 .B stop-all

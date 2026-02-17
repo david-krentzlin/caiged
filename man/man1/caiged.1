@@ -13,10 +13,10 @@ runs isolated OpenCode agent environments ("spins") in Docker containers. Each c
 Start or resume a container with an OpenCode spin. Builds images if needed, connects to existing container or creates a new one.
 .TP
 .B connect
-Connect to an existing container by project name. See \fBcaiged-connect\fR(1).
+Connect to an existing container by container name. See \fBcaiged-connect\fR(1).
 .TP
-.B session
-Manage containers and sessions (list, stop, shell). See \fBcaiged-session\fR(1).
+.B containers
+Manage containers (list, stop, shell). See \fBcaiged-containers\fR(1).
 .SH EXAMPLES
 .TP
 Run or connect to qa spin in current directory:
@@ -32,13 +32,13 @@ Pass secret environment variables:
 .B caiged run . \-\-spin qa \-\-secret-env API_KEY \-\-secret-env DATABASE_URL
 .TP
 Connect to an existing project from any directory:
-.B caiged connect my-project
+.B caiged connect caiged-qa-my-project
 .TP
 List all running containers:
-.B caiged session list
+.B caiged containers list
 .TP
 Open a shell in a container for debugging:
-.B caiged session shell <container-name>
+.B caiged containers shell <container-name>
 .SH CONTAINER BEHAVIOR
 Containers are named using the format:
 .B caiged-{spin}-{project}
@@ -73,7 +73,7 @@ GitHub CLI configuration directory, mounted read-only by default.
 Password generation salt file.
 .SH SEE ALSO
 .BR caiged-connect (1),
-.BR caiged-session (1),
+.BR caiged-containers (1),
 .BR docker (1),
 .BR opencode (1)
 .SH AUTHOR
