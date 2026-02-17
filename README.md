@@ -67,14 +67,6 @@ You will need to have the following available on your host system:
 * OpenCode
 * go
 
-## Missing features
-
-The following is what is still missing and an idea of what might come
-
-* Provide GIT configuration
-  - provide an easy way to commit under the user's git user name (optionally)
-  - however I would like to use a different ssh-key just for the agent which is trusted on my github (this gives tracking of AI activity for free)
-
 
 ## How does it work
 
@@ -215,3 +207,13 @@ OpenCode authentication behavior:
 ```bash
 caiged . --spin dev --secret-env JFROG_OIDC_TOKEN --secret-env JFROG_OIDC_TOKEN
 ```
+
+## Missing features
+
+The following is what is still missing and an idea of what might come
+
+* Provide GIT configuration
+  - provide an easy way to commit under the user's git user name (optionally)
+  - however I would like to use a different ssh-key just for the agent which is trusted on my github (this gives tracking of AI activity for free)
+- Allow spins to provision the docker container with different tools
+
