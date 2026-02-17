@@ -54,7 +54,10 @@ easier and gets you productive.
 
 Docker sandboxes give you higher degrees of isolation, but at the cost of requiring more resources and making some use-cases very cumbersome.
 If you want to run you agent in yolo mode without much supervision, docker sandboxes are the better option for you. Also, docker sandboxes provide
-some other niceties like making sure you git configuration (username etc. are present)
+some other niceties like making sure you git configuration (username etc. are present).
+
+**The most important feature of docker sandboxes remains however the level of isolation. It does not give the container access to the docker socket,
+which means that it's not possible to access files that the docker daemon can access.**
 
 Caiged, makes a different trade-off. It does not use a full vm but just a docker container, which is lighter on resource usage.
 **It provides docker access through a mount of the host docker socket.** This means your agent will see other docker containers.
