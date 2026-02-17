@@ -1,0 +1,141 @@
+.TH CAIGED-RUN 1 "February 2026" "caiged" "User Commands"
+.SH NAME
+caiged-run \- Start or resume a containerized OpenCode development environment
+.SH SYNOPSIS
+.B caiged run
+[\fIoptions\fR] \fIworkdir\fR [\fIcommand\fR [\fIargs\fR...]]
+.SH DESCRIPTION
+.B caiged run
+creates or resumes a containerized OpenCode development environment for the specified working directory. If a container already exists for the project, it will be resumed. Otherwise, a new container is created with the OpenCode server.
+.PP
+By default, after starting or resuming the container, the command automatically connects to the OpenCode TUI client. This behavior can be disabled with the
+.B --no-connect
+flag.
+.PP
+If a
+.I command
+is provided, it will be executed inside the container instead of connecting to OpenCode.
+.SH ARGUMENTS
+.TP
+.I workdir
+The working directory to mount into the container. This becomes the project root inside the container at
+.BR /workspace .
+.TP
+.I command
+Optional command to execute inside the container instead of connecting to OpenCode.
+.TP
+.I args
+Optional arguments to pass to the command.
+.SH OPTIONS
+.TP
+.B --spin \fItype\fR
+Specify the container spin type (e.g., "qa", "dev", "prod"). Different spins can have different configurations, installed tools, or runtime environments. Defaults to "default".
+.TP
+.B --gpu
+Enable GPU passthrough to the container. Useful for machine learning workloads or GPU-accelerated applications.
+.TP
+.B --no-connect
+Start or resume the container but do not automatically connect to the OpenCode TUI. Useful when you just want to start the container for later use or when running commands.
+.TP
+.B --build
+Force rebuild of container images before starting. Use this when you've modified the Dockerfile or want to ensure you have the latest base images.
+.TP
+.B --no-cache
+When building images, do not use Docker's build cache. This ensures a completely fresh build but takes longer.
+.TP
+.B --base-image \fIimage\fR
+Override the base Docker image to use. Defaults to
+.BR caiged:base-{arch} .
+.TP
+.B --spin-image \fIimage\fR
+Override the spin Docker image to use. Defaults to
+.BR caiged:{spin}-{arch} .
+.SH EXAMPLES
+.TP
+Start a container with default spin and connect:
+.B caiged run .
+.TP
+Start a container with the "qa" spin:
+.B caiged run . --spin qa
+.TP
+Start a container without connecting:
+.B caiged run . --spin qa --no-connect
+.TP
+Execute a command inside the container:
+.B caiged run . npm test
+.TP
+Force rebuild before starting:
+.B caiged run . --build --spin dev
+.TP
+Enable GPU support:
+.B caiged run . --gpu --spin ml
+.SH CONTAINER NAMING
+Containers are automatically named using the format:
+.B caiged-{spin}-{project}
+.PP
+The project name is derived from the working directory's basename with special characters normalized.
+.SH CONNECTION BEHAVIOR
+After starting or resuming a container,
+.B caiged run
+displays:
+.IP \(bu 2
+Project name and container name
+.IP \(bu 2
+OpenCode server URL and password
+.IP \(bu 2
+Reconnect command (using
+.BR caiged\ connect )
+.IP \(bu 2
+Manual connect command (using
+.BR opencode\ attach )
+.PP
+Unless
+.B --no-connect
+is specified, the command then automatically launches
+.BR opencode\ attach
+to connect to the OpenCode TUI.
+.SH CONTAINER LIFECYCLE
+.IP 1. 3
+If images don't exist (or
+.B --build
+is specified), they are built automatically
+.IP 2. 3
+If a container already exists for the project, it is resumed
+.IP 3. 3
+If no container exists, a new one is created with:
+.RS 6
+.IP \(bu 2
+Working directory mounted at
+.B /workspace
+.IP \(bu 2
+OpenCode server running on a random available port
+.IP \(bu 2
+Password authentication enabled
+.IP \(bu 2
+GPU passthrough if requested
+.RE
+.IP 4. 3
+Connection information is displayed
+.IP 5. 3
+OpenCode TUI is launched (unless
+.B --no-connect
+is used)
+.SH ENVIRONMENT
+.TP
+.B DOCKER_HOST
+Docker daemon connection URL. If not set, uses the default Docker daemon.
+.SH FILES
+.TP
+.B Dockerfile
+The Dockerfile used to build container images. Must be in the working directory or a parent directory.
+.TP
+.B .caigedrc
+Optional configuration file for project-specific settings (not yet implemented).
+.SH SEE ALSO
+.BR caiged (1),
+.BR caiged-connect (1),
+.BR caiged-session (1),
+.BR opencode (1),
+.BR docker (1)
+.SH AUTHOR
+Written by the caiged development team.
