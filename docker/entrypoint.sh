@@ -56,7 +56,7 @@ if [ "$DAEMON_MODE" = "1" ]; then
 	# Start tmux session with OpenCode server
 	# The server will use OPENCODE_SERVER_PASSWORD from environment
 	tmux new-session -d -s "$SESSION_NAME" \
-		"bunx opencode-ai serve --port 4096 --hostname 0.0.0.0; exec /bin/zsh"
+		"start-opencode serve --port 4096 --hostname 0.0.0.0; exec /bin/zsh"
 
 	# Keep container running by monitoring the tmux session
 	# If the session dies, the container will exit

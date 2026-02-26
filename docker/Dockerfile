@@ -19,6 +19,7 @@ RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
+    gcompat \
     git \
     jq \
     libgcc \
@@ -67,6 +68,8 @@ RUN mkdir -p /root/.config/mise \
   && MISE_YES=1 mise install \
   && mise reshim \
   && if [ "$OPENCODE_VERSION" = "latest" ]; then bun add -g opencode-ai; else bun add -g "opencode-ai@${OPENCODE_VERSION}"; fi \
+  && rm -f /root/.bun/install/global/node_modules/opencode-ai/bin/.opencode \
+  && bun /root/.bun/install/global/node_modules/opencode-ai/bin/opencode serve --help >/dev/null \
   && apk del .build-deps
 
 WORKDIR /workspace
@@ -105,4 +108,3 @@ RUN mkdir -p "$OPENCODE_CONFIG_DIR/agents" \
   "default_agent": "${SPIN_NAME}"
 }
 EOF
-

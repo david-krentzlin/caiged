@@ -174,7 +174,7 @@ func resolveConfig(opts RunOptions, workdir string) (Config, error) {
 		Arch:                envOrDefault("ARCH", "arm64"),
 		MiseVersion:         envOrDefault("MISE_VERSION", "2026.2.13"),
 		GHVersion:           envOrDefault("GH_VERSION", "2.86.0"),
-		OpencodeVersion:     envOrDefault("OPENCODE_VERSION", "latest"),
+		OpencodeVersion:     resolveOpencodeVersion(),
 		OpencodePort:        opencodePort,
 		OpencodePassword:    opencodePassword,
 	}
@@ -375,6 +375,33 @@ func envOrDefault(key, def string) string {
 		return def
 	}
 	return value
+}
+
+func resolveOpencodeVersion() string {
+	if explicit := strings.TrimSpace(os.Getenv("OPENCODE_VERSION")); explicit != "" {
+		return explicit
+	}
+
+	if !commandExists("opencode") {
+		return "latest"
+	}
+
+	output, err := runCapture("opencode", []string{"--version"}, ExecOptions{})
+	if err != nil {
+		return "latest"
+	}
+
+	fields := strings.Fields(strings.TrimSpace(output))
+	if len(fields) == 0 {
+		return "latest"
+	}
+
+	version := strings.TrimPrefix(fields[0], "v")
+	if version == "" {
+		return "latest"
+	}
+
+	return version
 }
 
 func runCapture(name string, args []string, opts ExecOptions) (string, error) {

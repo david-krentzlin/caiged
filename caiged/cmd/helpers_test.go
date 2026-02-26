@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
 )
@@ -273,5 +274,44 @@ func TestDockerRunArgsIncludesSecretEnvs(t *testing.T) {
 	}
 	if !slices.Contains(args, "JFROG_OIDC_TOKEN=topsecret") {
 		t.Fatalf("expected secret env to be present in docker args: %v", args)
+	}
+}
+
+func TestResolveOpencodeVersionPrefersEnvOverride(t *testing.T) {
+	t.Setenv("OPENCODE_VERSION", "9.9.9")
+
+	got := resolveOpencodeVersion()
+	if got != "9.9.9" {
+		t.Fatalf("resolveOpencodeVersion() = %q, want %q", got, "9.9.9")
+	}
+}
+
+func TestResolveOpencodeVersionUsesHostVersion(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("path-based executable test is shell-script based")
+	}
+
+	t.Setenv("OPENCODE_VERSION", "")
+	temp := t.TempDir()
+	t.Setenv("PATH", temp)
+
+	script := "#!/bin/sh\nprintf 'v1.2.15\\n'\n"
+	if err := os.WriteFile(filepath.Join(temp, "opencode"), []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake opencode: %v", err)
+	}
+
+	got := resolveOpencodeVersion()
+	if got != "1.2.15" {
+		t.Fatalf("resolveOpencodeVersion() = %q, want %q", got, "1.2.15")
+	}
+}
+
+func TestResolveOpencodeVersionFallsBackToLatest(t *testing.T) {
+	t.Setenv("OPENCODE_VERSION", "")
+	t.Setenv("PATH", t.TempDir())
+
+	got := resolveOpencodeVersion()
+	if got != "latest" {
+		t.Fatalf("resolveOpencodeVersion() = %q, want %q", got, "latest")
 	}
 }

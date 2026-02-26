@@ -222,6 +222,8 @@ caiged containers shell <container-name>
 OPENCODE_VERSION=latest caiged run . --spin dev --rebuild-images
 ```
 
+By default, caiged tries to match your host OpenCode client version for container builds by using `opencode --version` when `OPENCODE_VERSION` is not explicitly set.
+
 **Pass selected host secrets into the container:**
 ```bash
 export JFROG_OIDC_USER=...
@@ -229,6 +231,33 @@ export JFROG_OIDC_TOKEN=...
 
 caiged run . --spin dev --secret-env JFROG_OIDC_USER --secret-env JFROG_OIDC_TOKEN
 ```
+
+## Troubleshooting
+
+### Control keys not working in `caiged connect`
+
+If `Ctrl+C` (or other control keys) stops working only when attached to a container server, the most common cause is a host/client and container/server OpenCode version mismatch.
+
+Check versions:
+
+```bash
+opencode --version
+docker exec <container-name> zsh -lc 'start-opencode --version'
+```
+
+If they differ, align versions and rebuild/recreate the container:
+
+```bash
+# Option A: upgrade host client to match container
+opencode upgrade <version>
+
+# Option B: pin container version to match host
+OPENCODE_VERSION=<version> caiged run . --spin <spin> --rebuild-images
+```
+
+Notes:
+- Containers are persistent, so old versions remain until you recreate the container.
+- If your terminal state gets corrupted after aborting a TUI session, run `stty sane` (and `reset` if needed).
 
 ## Container / Spin Security
 
@@ -275,4 +304,3 @@ The following is what is still missing and an idea of what might come
   - provide an easy way to commit under the user's git user name (optionally)
   - however I would like to use a different ssh-key just for the agent which is trusted on my github (this gives tracking of AI activity for free)
 - Allow spins to provision the docker container with different tools
-
