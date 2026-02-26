@@ -357,10 +357,10 @@ func slugifyProjectName(name string) string {
 
 	clean := builder.String()
 	clean = strings.TrimLeftFunc(clean, func(r rune) bool {
-		return !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
 	})
 	clean = strings.TrimRightFunc(clean, func(r rune) bool {
-		return !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
 	})
 
 	if clean == "" {
@@ -429,30 +429,9 @@ func getContainerPort(containerName string) (int, error) {
 	return port, err
 }
 
-func execCommand(name string, args []string, opts ExecOptions) error {
-	cmd := exec.Command(name, args...)
-	if opts.Dir != "" {
-		cmd.Dir = opts.Dir
-	}
-	if opts.Stdin != nil {
-		cmd.Stdin = opts.Stdin
-	}
-	if opts.Stdout != nil {
-		cmd.Stdout = opts.Stdout
-	}
-	if opts.Stderr != nil {
-		cmd.Stderr = opts.Stderr
-	}
-	return cmd.Run()
-}
-
 func commandExists(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil
-}
-
-func stopContainer(cfg Config) {
-	_ = execCommand("docker", []string{"rm", "-f", cfg.ContainerName}, ExecOptions{})
 }
 
 func findFreePort(startPort int) (int, error) {

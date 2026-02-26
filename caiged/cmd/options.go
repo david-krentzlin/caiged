@@ -28,7 +28,7 @@ func addCommonFlags(cmd *cobra.Command) {
 
 func addRunFlags(cmd *cobra.Command, opts *RunOptions) {
 	cmd.Flags().StringVar(&opts.Spin, "spin", "", "Spin name (required)")
-	cmd.MarkFlagRequired("spin")
+	_ = cmd.MarkFlagRequired("spin")
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project name for container naming")
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "Path to caiged repo (contains spins/ and docker/ directories)")
 	cmd.Flags().BoolVar(&opts.EnableDockerSock, "enable-docker-sock", false, "Enable Docker socket mount (docker-in-docker)")

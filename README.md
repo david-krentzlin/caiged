@@ -259,6 +259,16 @@ Notes:
 - Containers are persistent, so old versions remain until you recreate the container.
 - If your terminal state gets corrupted after aborting a TUI session, run `stty sane` (and `reset` if needed).
 
+### `opencode` not installed on host
+
+`caiged` can still build containers without local `opencode` by using `OPENCODE_VERSION` (or `latest`), but connect operations require the host CLI.
+
+Install OpenCode on the host, or skip auto-connect for bootstrap runs:
+
+```bash
+caiged run . --spin <spin> --no-connect
+```
+
 ## Container / Spin Security
 
 - **Network**: uses bridge networking with port mapping

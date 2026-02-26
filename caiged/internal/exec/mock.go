@@ -73,7 +73,9 @@ func (m *MockExecutor) Run(name string, args []string, opts RunOptions) error {
 
 	// Write output to stdout if provided
 	if opts.Stdout != nil && len(response.Output) > 0 {
-		opts.Stdout.Write(response.Output)
+		if _, err := opts.Stdout.Write(response.Output); err != nil {
+			return err
+		}
 	}
 
 	return response.Error

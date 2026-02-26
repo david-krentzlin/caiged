@@ -15,6 +15,13 @@ import (
 func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 	workdir := args[0]
 	commandArgs := args[1:]
+	hostOpenCodeAvailable := commandExists("opencode")
+
+	if !hostOpenCodeAvailable {
+		fmt.Fprintf(os.Stderr, "\n%s\n", WarningStyle.Render("⚠️  local OpenCode CLI not found in PATH"))
+		fmt.Fprintf(os.Stderr, "%s\n", InfoStyle.Render("   Build will use OPENCODE_VERSION or fallback to latest."))
+		fmt.Fprintf(os.Stderr, "%s\n\n", InfoStyle.Render("   Auto-connect and `caiged connect` require local `opencode` installation."))
+	}
 
 	// Warn and confirm if docker socket is enabled
 	if opts.EnableDockerSock {
@@ -24,7 +31,9 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 		fmt.Fprintf(os.Stderr, "\n%s", InfoStyle.Render("Continue? (yes/no): "))
 
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			return fmt.Errorf("read confirmation: %w", err)
+		}
 		if response != "yes" {
 			return fmt.Errorf("operation cancelled by user")
 		}
@@ -93,6 +102,9 @@ func runCommand(args []string, opts RunOptions, forceConnect bool) error {
 
 	if opts.NoConnect && !forceConnect {
 		return nil
+	}
+	if !hostOpenCodeAvailable {
+		return fmt.Errorf("local opencode CLI not found in PATH; install OpenCode on host or rerun with --no-connect")
 	}
 
 	// By default, automatically connect to the OpenCode server
@@ -262,7 +274,9 @@ func connectToOpenCode(cfg Config, dockerClient *docker.Client, executor exec.Cm
 
 		// If we got a response object, the server is responding (even if it's an error like 401)
 		if resp != nil {
-			resp.Body.Close()
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", WarningStyle.Render(fmt.Sprintf("⚠️  failed to close readiness response body: %v", closeErr)))
+			}
 			serverReady = true
 			fmt.Printf(" %s\n", SuccessStyle.Render("✓ ready!"))
 			break

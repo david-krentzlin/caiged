@@ -19,6 +19,9 @@ func newConnectCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			containerName := args[0]
+			if !commandExists("opencode") {
+				return fmt.Errorf("local opencode CLI not found in PATH; install OpenCode on host and retry")
+			}
 
 			executor := exec.NewRealExecutor()
 			dockerClient := docker.NewClient(executor)

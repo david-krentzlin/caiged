@@ -27,5 +27,5 @@ acceptance:
 	./scripts/acceptance.sh
 
 .PHONY: qa
-qa: caiged
-	$(CAIGED_BIN) "$(PWD)" --spin qa
+qa:
+	bash script/quality-gate.sh
